@@ -1,15 +1,12 @@
-
-# Xeno Rat
+# Xeno Rat 🐀
 
 <p align='center'>
 <img src="./logo.png" width=200 alt="Xeno-RAT Logo"/>
 </p>
 
-Xeno Rat is a remote access tool (RAT) that is used to control a computer remotely. It is written in C# and is compatible with Windows 10, 11. It is meant to stable, completely open source, easy to use and has a lot of features.
+Xeno Rat is a remote access tool (RAT) that is used to control a computer remotely. It is written in C# and is compatible with Windows 10, 11. It is meant to be stable, completely open source, easy to use, and has a lot of features.
 
-</span>
-
-## What Sets Xeno Rat Apart
+## What Sets Xeno Rat Apart 🚀
 
 Xeno Rat stands out from the crowd for several reasons:
 
@@ -23,20 +20,20 @@ Xeno Rat stands out from the crowd for several reasons:
 
 - **Built Completely from Scratch**: Xeno Rat is developed entirely from scratch, ensuring a unique and tailored approach to remote access tools.
 
-## Xeno Rat Builder
+## Xeno Rat Builder 🛠️
 
-Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom settings and click "Build". Then select a name and a location to save the file. The file will be saved as a .exe file and will be ready to use.
+Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom settings, and click "Build". Then select a name and a location to save the file. The file will be saved as a .exe file and will be ready to use.
 
-## Features
+## Features 🔧
 
-### Fun
+### Fun 😄
 
 - Chat
 - Bluescreen
 - Message Box
 - Fun menu (monitor on/off, cd tray open/close, etc)
 
-### Surveillance
+### Surveillance 🕵️
 
 - HVNC (Hidden Virtual Network Computing)
 - WebCam
@@ -45,7 +42,7 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 - Offline Key Logger
 - Screen Control
 
-### System
+### System ⚙️
 
 - Reverse Proxy
 - Process Manager
@@ -55,48 +52,47 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 - InfoGrab (cookies, Passwords, etc)
 - Startup
 
-### Uac Bypass
+### UAC Bypass 🛡️
 
 - Cmstp
 - Windir + Disk Cleanup
 - Fodhelper
 
-### Uac Options
+### UAC Options ⚠️
 
 - Request admin
 - De-escalate to user
 
-### Client
+### Client 🖥️
 
 - Close
 - Relaunch
 - Uninstall
 
-### Power
+### Power 🚥
 
 - Shutdown
 - Restart
 
-### Misc Features
+### Misc Features 📝
 
 - Logs
 - Listen on multiple ports
-- password secured
+- Password secured
 
-## Issues, Bugs and Contributions
+## Issues, Bugs and Contributions 🐞
 
-If you find any issues or bugs, please report them [here](https://github.com/moom825/xeno-rat/issues). If you would like to contribute to the project, please fork the repository and submit a pull request. All contributions are welcome. If you don't know how to build the malware, or use it, then please don't open an issue as it will be closed as completed immediately.
-If you like the project, please leave a star!
+If you find any issues or bugs, please report them [here](https://github.com/moom825/xeno-rat/issues). If you would like to contribute to the project, please fork the repository and submit a pull request. All contributions are welcome. If you don't know how to build the malware, or use it, then please don't open an issue as it will be closed as completed immediately. If you like the project, please leave a star!
 
-## Legal Disclaimer
+## Legal Disclaimer ⚖️
 
 This tool is for educational purposes only. I am not responsible for any damage done by this tool. Please always stay within legal and ethical boundaries.
 
-## License
+## License 📄
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## FAQ
+## FAQ ❓
 
 ### How do I use this tool?
 To get started with Xeno-RAT, follow these simple steps:
@@ -109,12 +105,11 @@ To get started with Xeno-RAT, follow these simple steps:
 
 4. **Run the Executable**: Inside the extracted folder, you will find the executable file. Double-click on this file to run Xeno-RAT.
 
-## Contact
+## Contact 📞
 
 **Contact the Developer:**
-- **Telegram:** [moom825](https://t.me/moom825)
-- **Discord:** moom825
+- **Telegram:** [LightYagami28](https://t.me/LightYagami28)
 
-## Donation
+## Donation 💰
 ### Buy me a coffee!
-BTC: bc1qg4zy8w5swc66k9xg29c2x6ennn5cyv2ytlp0a6
+BTC: 

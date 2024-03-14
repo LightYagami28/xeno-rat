@@ -1,22 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace xeno_rat_server
+namespace XenoRatServer
 {
-    class Encryption
+    public static class Encryption
     {
-        public static byte[] Encrypt(byte[] data, byte[] Key)
+        public static byte[] Encrypt(byte[] data, byte[] key)
         {
             byte[] encrypted;
             byte[] IV = new byte[16];
             using (Aes aesAlg = Aes.Create())
             {
-                aesAlg.Key = Key;
+                aesAlg.Key = key;
                 aesAlg.IV = IV;
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
                 using (MemoryStream msEncrypt = new MemoryStream())
@@ -28,18 +24,17 @@ namespace xeno_rat_server
                         encrypted = msEncrypt.ToArray();
                     }
                 }
-                encryptor.Dispose();
             }
             return encrypted;
         }
 
-        public static byte[] Decrypt(byte[] data, byte[] Key)
+        public static byte[] Decrypt(byte[] data, byte[] key)
         {
             byte[] IV = new byte[16];
             byte[] decrypted;
             using (Aes aesAlg = Aes.Create())
             {
-                aesAlg.Key = Key;
+                aesAlg.Key = key;
                 aesAlg.IV = IV;
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
                 using (MemoryStream ms = new MemoryStream())
@@ -51,7 +46,6 @@ namespace xeno_rat_server
                         decrypted = ms.ToArray();
                     }
                 }
-                decryptor.Dispose();
             }
             return decrypted;
         }

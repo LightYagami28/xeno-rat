@@ -1,26 +1,29 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace NAudio.Wave.Asio
 {
-    /// <summary>
-    /// ASIO 64 bit value
-    /// Unfortunately the ASIO API was implemented it before compiler supported consistently 64 bit 
-    /// integer types. By using the structure the data layout on a little-endian system like the 
-    /// Intel x86 architecture will result in a "non native" storage of the 64 bit data. The most 
-    /// significant 32 bit are stored first in memory, the least significant bits are stored in the 
-    /// higher memory space. However each 32 bit is stored in the native little-endian fashion
-    /// </summary>
+    // Define a custom obfuscated name for the struct
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public struct Asio64Bit
+    public struct Pq78R
     {
-        /// <summary>
-        /// most significant bits (Bits 32..63)
-        /// </summary>
-        public uint hi;
-        /// <summary>
-        /// least significant bits (Bits 0..31)
-        /// </summary>
-        public uint lo;
-        // TODO: IMPLEMENT AN EASY WAY TO CONVERT THIS TO double  AND long
+        // Obfuscate field names
+        public uint aB; // Obfuscated name for hi
+        public uint cD; // Obfuscated name for lo
+
+        // Method to convert the struct to a double
+        public double D3Fr()
+        {
+            // Combine hi and lo fields to form a double
+            long combined = (Convert.ToInt64(aB) << 32) | cD;
+            return BitConverter.Int64BitsToDouble(combined);
+        }
+
+        // Method to convert the struct to a long
+        public long Xyz1()
+        {
+            // Combine hi and lo fields to form a long
+            return ((long)aB << 32) | cD;
+        }
     };
 }

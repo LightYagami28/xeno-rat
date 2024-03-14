@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using xeno_rat_client;
@@ -15,7 +9,8 @@ namespace Chat
     public partial class ChatForm : Form
     {
         Node server;
-        bool recived_heartbeat;
+        bool receivedHeartbeat;
+
         public ChatForm(Node _server)
         {
             server = _server;
@@ -23,26 +18,28 @@ namespace Chat
             textBox1.Enabled = false;
             InitializeAsync();
         }
-        private async Task InitializeAsync() 
+
+        private async Task InitializeAsync()
         {
             Heartbeat();
             await RecvThread();
         }
 
-        public async Task Heartbeat() 
+        public async Task Heartbeat()
         {
-            while (server.Connected()) 
+            while (server.Connected())
             {
                 await Task.Delay(5000);
-                if (recived_heartbeat) 
+                if (receivedHeartbeat)
                 {
-                    recived_heartbeat = false;
+                    receivedHeartbeat = false;
                     continue;
                 }
                 server.Disconnect();
                 break;
             }
         }
+
         public async Task RecvThread()
         {
             while (server.Connected())
@@ -52,11 +49,11 @@ namespace Chat
                 {
                     break;
                 }
-                if (data.Length == 1) 
+                if (data.Length == 1)
                 {
-                    if (data[0] == 4) 
+                    if (data[0] == 4)
                     {
-                        recived_heartbeat = true;
+                        receivedHeartbeat = true;
                         continue;
                     }
                 }
@@ -68,15 +65,16 @@ namespace Chat
                     textBox1.ScrollToCaret();
                 }));
             }
-            Console.WriteLine("end!");
-            if (!this.IsDisposed)
+            Console.WriteLine("End!");
+            if (!IsDisposed)
             {
-                this.BeginInvoke((MethodInvoker)(() =>
+                BeginInvoke((MethodInvoker)(() =>
                 {
-                    this.Close();
+                    Close();
                 }));
             }
         }
+
         private async void button1_Click(object sender, EventArgs e)
         {
             string message = textBox2.Text;
@@ -97,14 +95,9 @@ namespace Chat
             }
         }
 
-        private void textBox2_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void ChatForm_Load(object sender, EventArgs e)
         {
-            this.Activate();
+            Activate();
         }
     }
 }

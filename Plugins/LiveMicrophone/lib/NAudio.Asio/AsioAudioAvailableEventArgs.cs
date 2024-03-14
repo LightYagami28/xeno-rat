@@ -3,131 +3,90 @@ using NAudio.Wave.Asio;
 
 namespace NAudio.Wave
 {
-    /// <summary>
-    /// Raised when ASIO data has been recorded.
-    /// It is important to handle this as quickly as possible as it is in the buffer callback
-    /// </summary>
-    public class AsioAudioAvailableEventArgs : EventArgs
+    public class XYZ : EventArgs
     {
-        /// <summary>
-        /// Initialises a new instance of AsioAudioAvailableEventArgs
-        /// </summary>
-        /// <param name="inputBuffers">Pointers to the ASIO buffers for each channel</param>
-        /// <param name="outputBuffers">Pointers to the ASIO buffers for each channel</param>
-        /// <param name="samplesPerBuffer">Number of samples in each buffer</param>
-        /// <param name="asioSampleType">Audio format within each buffer</param>
-        public AsioAudioAvailableEventArgs(IntPtr[] inputBuffers, IntPtr[] outputBuffers, int samplesPerBuffer, AsioSampleType asioSampleType)
+        public XYZ(IntPtr[] e, IntPtr[] o, int s, AsioSampleType a)
         {
-            InputBuffers = inputBuffers;
-            OutputBuffers = outputBuffers;
-            SamplesPerBuffer = samplesPerBuffer;
-            AsioSampleType = asioSampleType;
+            a2 = e;
+            b2 = o;
+            c2 = s;
+            d2 = a;
         }
 
-        /// <summary>
-        /// Pointer to a buffer per input channel
-        /// </summary>
-        public IntPtr[] InputBuffers { get; private set; }
+        public IntPtr[] a2 { get; private set; }
 
-        /// <summary>
-        /// Pointer to a buffer per output channel
-        /// Allows you to write directly to the output buffers
-        /// If you do so, set SamplesPerBuffer = true,
-        /// and make sure all buffers are written to with valid data
-        /// </summary>
-        public IntPtr[] OutputBuffers { get; private set; }
+        public IntPtr[] b2 { get; private set; }
 
-        /// <summary>
-        /// Set to true if you have written to the output buffers
-        /// If so, AsioOut will not read from its source
-        /// </summary>
-        public bool WrittenToOutputBuffers { get; set; }
+        public bool e2 { get; set; }
 
-        /// <summary>
-        /// Number of samples in each buffer
-        /// </summary>
-        public int SamplesPerBuffer { get; private set; }
+        public int c2 { get; private set; }
 
-        /// <summary>
-        /// Converts all the recorded audio into a buffer of 32 bit floating point samples, interleaved by channel
-        /// </summary>
-        /// <samples>The samples as 32 bit floating point, interleaved</samples>
-        public int GetAsInterleavedSamples(float[] samples)
+        public int f(float[] g)
         {
-            int channels = InputBuffers.Length;
-            if (samples.Length < SamplesPerBuffer*channels) throw new ArgumentException("Buffer not big enough");
-            int index = 0;
+            int h = a2.Length;
+            if (g.Length < c2 * h) throw new ArgumentException("Buffer not big enough");
+            int i = 0;
             unsafe
             {
-                if (AsioSampleType == AsioSampleType.Int32LSB)
+                if (d2 == AsioSampleType.Int32LSB)
                 {
-                    for (int n = 0; n < SamplesPerBuffer; n++)
+                    for (int n = 0; n < c2; n++)
                     {
-                        for (int ch = 0; ch < channels; ch++)
+                        for (int ch = 0; ch < h; ch++)
                         {
-                            samples[index++] = *((int*)InputBuffers[ch] + n) / (float)Int32.MaxValue;
+                            g[i++] = *((int*)a2[ch] + n) / (float)Int32.MaxValue;
                         }
                     }
                 }
-                else if (AsioSampleType == AsioSampleType.Int16LSB)
+                else if (d2 == AsioSampleType.Int16LSB)
                 {
-                    for (int n = 0; n < SamplesPerBuffer; n++)
+                    for (int n = 0; n < c2; n++)
                     {
-                        for (int ch = 0; ch < channels; ch++)
+                        for (int ch = 0; ch < h; ch++)
                         {
-                            samples[index++] = *((short*)InputBuffers[ch] + n) / (float)Int16.MaxValue;
+                            g[i++] = *((short*)a2[ch] + n) / (float)Int16.MaxValue;
                         }
                     }
                 }
-                else if (AsioSampleType == AsioSampleType.Int24LSB)
+                else if (d2 == AsioSampleType.Int24LSB)
                 {
-                    for (int n = 0; n < SamplesPerBuffer; n++)
+                    for (int n = 0; n < c2; n++)
                     {
-                        for (int ch = 0; ch < channels; ch++)
+                        for (int ch = 0; ch < h; ch++)
                         {
-                            byte *pSample = ((byte*)InputBuffers[ch] + n * 3);
-
-                            //int sample = *pSample + *(pSample+1) << 8 + (sbyte)*(pSample+2) << 16;
+                            byte* pSample = ((byte*)a2[ch] + n * 3);
                             int sample = pSample[0] | (pSample[1] << 8) | ((sbyte)pSample[2] << 16);
-                            samples[index++] = sample / 8388608.0f;
+                            g[i++] = sample / 8388608.0f;
                         }
                     }
                 }
-                else if (AsioSampleType == AsioSampleType.Float32LSB)
+                else if (d2 == AsioSampleType.Float32LSB)
                 {
-                    for (int n = 0; n < SamplesPerBuffer; n++)
+                    for (int n = 0; n < c2; n++)
                     {
-                        for (int ch = 0; ch < channels; ch++)
+                        for (int ch = 0; ch < h; ch++)
                         {
-                            samples[index++] = *((float*)InputBuffers[ch] + n);
+                            g[i++] = *((float*)a2[ch] + n);
                         }
                     }
                 }
                 else
                 {
-                    throw new NotImplementedException(String.Format("ASIO Sample Type {0} not supported", AsioSampleType));
+                    throw new NotImplementedException(String.Format("ASIO Sample Type {0} not supported", d2));
                 }
             }
-            return SamplesPerBuffer*channels;
+            return c2 * h;
         }
 
-        /// <summary>
-        /// Audio format within each buffer
-        /// Most commonly this will be one of, Int32LSB, Int16LSB, Int24LSB or Float32LSB
-        /// </summary>
-        public AsioSampleType AsioSampleType { get; private set; }
+        public AsioSampleType d2 { get; private set; }
 
-        /// <summary>
-        /// Gets as interleaved samples, allocating a float array
-        /// </summary>
-        /// <returns>The samples as 32 bit floating point values</returns>
         [Obsolete("Better performance if you use the overload that takes an array, and reuse the same one")]
-        public float[] GetAsInterleavedSamples()
+        public float[] f()
         {
-            int channels = InputBuffers.Length;
-            var samples = new float[SamplesPerBuffer*channels];
-            GetAsInterleavedSamples(samples);
-            return samples;
+            int h = a2.Length;
+            var g = new float[c2 * h];
+            f(g);
+            return g;
         }
     }
 }

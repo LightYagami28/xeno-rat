@@ -6,7 +6,7 @@ namespace NAudio.Wave.Asio
     /// ASIO Channel Info
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 4, CharSet = CharSet.Ansi)]
-    public struct AsioChannelInfo
+    public struct XyZz
     {
         /// <summary>
         /// on input, channel index

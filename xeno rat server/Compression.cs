@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace xeno_rat_server
+namespace XenoRatServer
 {
-    class Compression
+    public static class Compression
     {
-        const ushort COMPRESSION_FORMAT_LZNT1 = 2;
-        const ushort COMPRESSION_ENGINE_MAXIMUM = 0x100;
+        private const ushort COMPRESSION_FORMAT_LZNT1 = 2;
+        private const ushort COMPRESSION_ENGINE_MAXIMUM = 0x100;
 
         [DllImport("ntdll.dll")]
         private static extern uint RtlGetCompressionWorkSpaceSize(ushort CompressionFormat, out uint pNeededBufferSize, out uint Unknown);
@@ -50,12 +46,13 @@ namespace xeno_rat_server
             Array.Resize(ref outBuf, dstSize);
             return outBuf;
         }
-        public static byte[] Decompress(byte[] buffer, int original_size)
+
+        public static byte[] Decompress(byte[] buffer, int originalSize)
         {
             int dwRet = 0;
-            byte[] a = new byte[original_size];
-            RtlDecompressBuffer(COMPRESSION_FORMAT_LZNT1, a, original_size, buffer, buffer.Length, out dwRet);
-            return a;
+            byte[] result = new byte[originalSize];
+            RtlDecompressBuffer(COMPRESSION_FORMAT_LZNT1, result, originalSize, buffer, buffer.Length, out dwRet);
+            return result;
         }
     }
 }
