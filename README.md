@@ -4,7 +4,7 @@
 <img src="./logo.png" width=200 alt="Xeno-RAT Logo"/>
 </p>
 
-[![Donate](https://img.shields.io/badge/Donate-Here-green?style=for-the-badge)](donation.md)
+[![Donate](https://img.shields.io/badge/Donate-Here-green?style=for-the-badge)](Donation.md)
 
 
 Xeno Rat is a remote access tool (RAT) designed to control computers remotely. It is written in C# and is compatible with Windows 10 and 11. The tool prioritizes stability, open-source transparency, user-friendliness, and extensive functionality.
