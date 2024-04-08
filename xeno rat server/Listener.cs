@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace xeno_rat_server
 {
@@ -40,10 +41,10 @@ namespace xeno_rat_server
             {
                 listeners[port].StartListening(ConnectCallBack);
             }
-            catch
+            catch (Exception e)
             {
                 listeners[port].StopListening();
-                MessageBox.Show("There was an error using this port!");
+                MessageBox.Show($"There was an error using this port: {e.Message}");
             }
         }
 

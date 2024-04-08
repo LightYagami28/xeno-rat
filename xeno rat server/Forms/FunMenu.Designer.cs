@@ -1,5 +1,4 @@
-﻿
-namespace xeno_rat_server.Forms
+﻿namespace xeno_rat_server.Forms
 {
     partial class FunMenu
     {
@@ -46,7 +45,7 @@ namespace xeno_rat_server.Forms
             this.button1.TabIndex = 0;
             this.button1.Text = "Open CD tray";
             this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.button1.Click += new System.EventHandler(this.Button_Click);
             // 
             // button2
             // 
@@ -56,7 +55,7 @@ namespace xeno_rat_server.Forms
             this.button2.TabIndex = 1;
             this.button2.Text = "Close CD tray";
             this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.button2.Click += new System.EventHandler(this.Button_Click);
             // 
             // button3
             // 
@@ -66,7 +65,7 @@ namespace xeno_rat_server.Forms
             this.button3.TabIndex = 2;
             this.button3.Text = "Monitor Off";
             this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
+            this.button3.Click += new System.EventHandler(this.Button_Click);
             // 
             // button4
             // 
@@ -76,7 +75,7 @@ namespace xeno_rat_server.Forms
             this.button4.TabIndex = 3;
             this.button4.Text = "Monitor On";
             this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
+            this.button4.Click += new System.EventHandler(this.Button_Click);
             // 
             // trackBar1
             // 

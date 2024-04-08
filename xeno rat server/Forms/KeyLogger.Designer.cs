@@ -1,5 +1,4 @@
-﻿
-namespace xeno_rat_server.Forms
+﻿namespace XenoRatServer.Forms
 {
     partial class KeyLogger
     {
@@ -30,7 +29,7 @@ namespace xeno_rat_server.Forms
         private void InitializeComponent()
         {
             this.listView1 = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
@@ -39,7 +38,7 @@ namespace xeno_rat_server.Forms
             // listView1
             // 
             this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1});
+                this.columnHeader1});
             this.listView1.FullRowSelect = true;
             this.listView1.GridLines = true;
             this.listView1.HideSelection = false;

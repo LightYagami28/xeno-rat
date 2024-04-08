@@ -1,4 +1,10 @@
-﻿[*.{cs,razor}]
+﻿<Project>
+  <ItemGroup>
+    <Compile Include="**\*.cs" />
+    <Content Include="**\*.razor" />
+  </ItemGroup>
 
-# Suppress CS4014 warning: Because this call is not awaited, execution of the current method continues before the call is completed
-dotnet_diagnostic.CS4014.severity = none
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS4014</NoWarn>
+  </PropertyGroup>
+</Project>

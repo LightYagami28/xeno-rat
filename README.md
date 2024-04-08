@@ -4,25 +4,28 @@
 <img src="./logo.png" width=200 alt="Xeno-RAT Logo"/>
 </p>
 
-Xeno Rat is a remote access tool (RAT) that is used to control a computer remotely. It is written in C# and is compatible with Windows 10, 11. It is meant to be stable, completely open source, easy to use, and has a lot of features.
+[![Donate](https://img.shields.io/badge/Donate-Here-green?style=for-the-badge)](donation.md)
+
+
+Xeno Rat is a remote access tool (RAT) designed to control computers remotely. It is written in C# and is compatible with Windows 10 and 11. The tool prioritizes stability, open-source transparency, user-friendliness, and extensive functionality.
 
 ## What Sets Xeno Rat Apart 🚀
 
-Xeno Rat stands out from the crowd for several reasons:
+Xeno Rat stands out for several key features:
 
-- **HVNC (Hidden Virtual Network Computing)**: Xeno Rat offers HVNC, which is typically a paid feature in other RATs, but here, it's freely available to enhance your remote access experience.
+- **HVNC (Hidden Virtual Network Computing)**: Xeno Rat offers HVNC, a feature typically found in paid RATs, for enhanced remote access capabilities, available for free.
 
-- **Live Microphone**: Enjoy real-time audio surveillance with Xeno Rat, which provides a live microphone feature.
+- **Live Microphone**: Users can conduct real-time audio surveillance through Xeno Rat's live microphone functionality.
 
-- **Socks5 Reverse Proxy**: Xeno Rat includes a Socks5 reverse proxy, allowing you to bypass network restrictions and access remote systems with ease.
+- **Socks5 Reverse Proxy**: Xeno Rat includes a Socks5 reverse proxy, allowing users to bypass network restrictions and access remote systems seamlessly.
 
-- **Regular Updates and Much More**: We are committed to keeping Xeno Rat up to date and continually improving its features and functionality to better meet your needs.
+- **Regular Updates and More**: The project is committed to regular updates and ongoing improvements, ensuring that Xeno Rat remains current and meets evolving user needs.
 
-- **Built Completely from Scratch**: Xeno Rat is developed entirely from scratch, ensuring a unique and tailored approach to remote access tools.
+- **Built from Scratch**: Xeno Rat is developed entirely from scratch, offering a unique and tailored approach to remote access tools.
 
 ## Xeno Rat Builder 🛠️
 
-Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom settings, and click "Build". Then select a name and a location to save the file. The file will be saved as a .exe file and will be ready to use.
+In the Xeno-RAT Server, users can navigate to the "Builder" tab, customize settings, and click "Build". The resulting file, saved as a .exe, is ready for use.
 
 ## Features 🔧
 
@@ -31,7 +34,7 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 - Chat
 - Bluescreen
 - Message Box
-- Fun menu (monitor on/off, cd tray open/close, etc)
+- Fun menu (monitor on/off, CD tray open/close, etc.)
 
 ### Surveillance 🕵️
 
@@ -49,7 +52,7 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 - File Manager
 - Registry Manager
 - Shell
-- InfoGrab (cookies, Passwords, etc)
+- InfoGrab (cookies, passwords, etc.)
 - Startup
 
 ### UAC Bypass 🛡️
@@ -74,7 +77,7 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 - Shutdown
 - Restart
 
-### Misc Features 📝
+### Miscellaneous Features 📝
 
 - Logs
 - Listen on multiple ports
@@ -82,11 +85,11 @@ Inside the Xeno-Rat Server, head over to the "Builder" tab, select your custom s
 
 ## Issues, Bugs and Contributions 🐞
 
-If you find any issues or bugs, please report them [here](https://github.com/moom825/xeno-rat/issues). If you would like to contribute to the project, please fork the repository and submit a pull request. All contributions are welcome. If you don't know how to build the malware, or use it, then please don't open an issue as it will be closed as completed immediately. If you like the project, please leave a star!
+Report any issues or bugs [here](https://github.com/moom825/xeno-rat/issues). Contributions via forked repositories and pull requests are welcome. If you're unfamiliar with building or using the malware, refrain from opening issues, as they will be closed. Consider leaving a star if you appreciate the project!
 
 ## Legal Disclaimer ⚖️
 
-This tool is for educational purposes only. I am not responsible for any damage done by this tool. Please always stay within legal and ethical boundaries.
+This tool is for educational purposes only. The developer holds no liability for any damages incurred through its use. Always adhere to legal and ethical standards.
 
 ## License 📄
 
@@ -95,21 +98,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## FAQ ❓
 
 ### How do I use this tool?
-To get started with Xeno-RAT, follow these simple steps:
+To begin using Xeno-RAT:
 
-1. **Go to the Releases Tab**: Navigate to the "Releases" tab of this GitHub repository to find the latest release. You can find it [here](https://github.com/moom825/xeno-rat/releases).
+1. **Access the Releases Tab**: Visit the "Releases" tab in this GitHub repository to find the latest version [here](https://github.com/moom825/xeno-rat/releases).
 
-2. **Download the Latest Release**: Select the latest release from the list of releases and download the zip file containing the application files.
+2. **Download the Latest Release**: Select the latest release from the list and download the zip file containing the application files.
 
-3. **Unzip the Downloaded File**: After downloading, unzip the downloaded zip file to extract the contents. You can use your operating system's built-in tools or a third-party archive utility.
+3. **Unzip the Downloaded File**: Extract the contents of the downloaded zip file using your operating system's tools or a third-party utility.
 
-4. **Run the Executable**: Inside the extracted folder, you will find the executable file. Double-click on this file to run Xeno-RAT.
+4. **Execute the File**: Inside the extracted folder, locate the executable file and double-click to launch Xeno-RAT.
 
 ## Contact 📞
 
 **Contact the Developer:**
 - **Telegram:** [LightYagami28](https://t.me/LightYagami28)
 
-## Donation 💰
-### Buy me a coffee!
-BTC: 

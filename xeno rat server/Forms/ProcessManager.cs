@@ -1,70 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace xeno_rat_server.Forms
 {
     public partial class ProcessManager : Form
     {
-        Node client;
-        bool paused = false;
+        private readonly Node client;
+        private bool paused = false;
+
         public ProcessManager(Node _client)
         {
             client = _client;
             InitializeComponent();
-            _ = Task.Run(async () => await RecvThread());
+            Task.Run(RecvThread);
         }
-        public async Task RecvThread()
+
+        private async Task RecvThread()
         {
             while (client.Connected())
             {
                 byte[] data = await client.ReceiveAsync();
                 if (data == null)
                 {
-                    if (!this.IsDisposed)
+                    if (!IsDisposed)
                     {
-                        this.Invoke((MethodInvoker)(() =>
-                        {
-                            this.Close();
-                        }));
+                        Invoke((MethodInvoker)(() => Close()));
                     }
                     return;
                 }
-                if (paused) continue;
-                List<ProcessNode> b = DeserializeProcessList(data);
-                DisplayProcessTree(b);
+                if (!paused)
+                {
+                    List<ProcessNode> processList = DeserializeProcessList(data);
+                    DisplayProcessTree(processList);
+                }
             }
         }
 
         private void PopulateTreeView(ProcessNode node, TreeNode parentNode)
         {
-            TreeNode treeNode = new TreeNode($"{node.Name} ({node.PID}): {node.FilePath} ({node.FileDescription})");
-            treeNode.Tag = node;
-
+            TreeNode treeNode = new TreeNode($"{node.Name} ({node.PID}): {node.FilePath} ({node.FileDescription})")
+            {
+                Tag = node
+            };
 
             if (parentNode != null)
             {
-                treeView1.Invoke((Action)(() =>
-                {
-                    parentNode.Nodes.Add(treeNode);
-                }));
+                parentNode.Nodes.Add(treeNode);
             }
             else
             {
-                treeView1.Invoke((Action)(() =>
-                {
-                    treeView1.BeginUpdate();
-                    treeView1.Nodes.Add(treeNode);
-                }));
+                treeView1.BeginUpdate();
+                treeView1.Nodes.Add(treeNode);
             }
 
             foreach (var childNode in node.Children)
@@ -74,55 +63,42 @@ namespace xeno_rat_server.Forms
 
             if (parentNode == null)
             {
-                treeView1.Invoke((Action)(() =>
-                {
-                    treeView1.EndUpdate();
-                }));
+                treeView1.EndUpdate();
             }
         }
 
         private void DisplayProcessTree(List<ProcessNode> processList)
         {
-            treeView1.Invoke((Action)(() =>
-            {
-                treeView1.BeginUpdate();
-                treeView1.Nodes.Clear();
-            }));
+            treeView1.BeginUpdate();
+            treeView1.Nodes.Clear();
 
             foreach (var rootNode in processList)
             {
                 PopulateTreeView(rootNode, null);
             }
 
-            treeView1.Invoke((Action)(() =>
-            {
-                treeView1.EndUpdate();
-            }));
+            treeView1.EndUpdate();
         }
-
 
         private static List<ProcessNode> DeserializeProcessList(byte[] serializedData)
         {
             List<ProcessNode> processList = new List<ProcessNode>();
 
             using (MemoryStream memoryStream = new MemoryStream(serializedData))
-            {
                 using (BinaryReader reader = new BinaryReader(memoryStream))
                 {
-                    // Deserialize the number of processes
                     int processCount = reader.ReadInt32();
 
-                    // Deserialize each process node
                     for (int i = 0; i < processCount; i++)
                     {
                         ProcessNode processNode = DeserializeProcessNode(reader);
                         processList.Add(processNode);
                     }
                 }
-            }
 
             return processList;
         }
+
         private static ProcessNode DeserializeProcessNode(BinaryReader reader)
         {
             int pid = reader.ReadInt32();
@@ -130,6 +106,7 @@ namespace xeno_rat_server.Forms
             string filePath = reader.ReadString();
             string fileDescription = reader.ReadString();
             string name = reader.ReadString();
+
             ProcessNode processNode = new ProcessNode(filePath)
             {
                 PID = pid,
@@ -146,96 +123,62 @@ namespace xeno_rat_server.Forms
 
             return processNode;
         }
-        private async void killPid(int pid)
+
+        private async void KillPid(int pid)
         {
-            try 
+            try
             {
                 await client.SendAsync(client.sock.IntToBytes(pid));
-                MessageBox.Show("sent the kill command");
-            } 
-            catch 
+                MessageBox.Show("Sent the kill command");
+            }
+            catch
             {
-                MessageBox.Show("error sending the kill command");
+                MessageBox.Show("Error sending the kill command");
             }
         }
-        private void treeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+
+        private void TreeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                try 
+                try
                 {
-                    ProcessNode procnode = ((ProcessNode)e.Node.Tag);
+                    ProcessNode procnode = (ProcessNode)e.Node.Tag;
                     ContextMenuStrip PopupMenu = new ContextMenuStrip();
-                    PopupMenu.Items.Add("Kill " + procnode.Name);
-                    PopupMenu.ItemClicked += new ToolStripItemClickedEventHandler((object _, ToolStripItemClickedEventArgs __) => killPid(procnode.PID));
+                    PopupMenu.Items.Add($"Kill {procnode.Name}");
+                    PopupMenu.ItemClicked += (object _, ToolStripItemClickedEventArgs __) => KillPid(procnode.PID);
                     PopupMenu.Show(Cursor.Position);
-                } 
-                catch 
+                }
+                catch
                 {
-                    MessageBox.Show("something went wrong...");
+                    MessageBox.Show("Something went wrong...");
                 }
             }
         }
 
+        private async void Button1_Click(object sender, EventArgs e)
+        {
+            paused = !paused;
+            await client.SendAsync(new byte[] { (byte)(paused ? 1 : 0) });
+            button1.Text = paused ? "Unpause" : "Pause";
+        }
+
         private void ProcessManager_Load(object sender, EventArgs e)
         {
-
-        }
-
-        private void ProcessManager_Load_1(object sender, EventArgs e)
-        {
-
-        }
-
-
-        private void ProcessManager_Load_2(object sender, EventArgs e)
-        {
-
-        }
-
-
-        private void ProcessManager_Load_3(object sender, EventArgs e)
-        {
-
-        }
-
-        private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-
-        }
-
-        private async void button1_Click(object sender, EventArgs e)
-        {
-            if (!paused)
-            {
-                paused = true;
-                await client.SendAsync(new byte[] { (byte)1 });
-                button1.Text = "Unpause";
-            }
-            else 
-            {
-                paused = false;
-                await client.SendAsync(new byte[] { (byte)0 });
-                button1.Text = "Pause";
-            }
-            
         }
     }
+
     class ProcessNode
     {
         public string FilePath { get; }
-        public int PID { set;  get; }
+        public int PID { set; get; }
         public string FileDescription { get; set; }
         public string Name { set; get; }
         public List<ProcessNode> Children { get; set; }
 
         public ProcessNode(string filePath)
         {
-            FilePath = filePath;
-            if (filePath == "") 
-            {
-                FilePath = "Unkown Path";
-            }
+            FilePath = string.IsNullOrEmpty(filePath) ? "Unknown Path" : filePath;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿
-namespace xeno_rat_server.Forms
+﻿namespace XenoRatServer.Forms
 {
     partial class InfoGrab
     {
@@ -53,7 +52,6 @@ namespace xeno_rat_server.Forms
             this.richTextBox1.Size = new System.Drawing.Size(538, 224);
             this.richTextBox1.TabIndex = 0;
             this.richTextBox1.Text = "";
-            this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
             // 
             // richTextBox2
             // 

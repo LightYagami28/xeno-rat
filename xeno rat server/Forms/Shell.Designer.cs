@@ -1,5 +1,4 @@
-﻿
-namespace xeno_rat_server.Forms
+﻿namespace xeno_rat_server.Forms
 {
     partial class Shell
     {

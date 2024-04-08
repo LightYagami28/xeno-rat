@@ -1,4 +1,4 @@
-﻿namespace xeno_rat_server.Forms
+﻿namespace XenoRatServer.Forms
 {
     partial class DebugInfo
     {
@@ -40,7 +40,7 @@
             // listView1
             // 
             this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1});
+                this.columnHeader1});
             this.listView1.FullRowSelect = true;
             this.listView1.GridLines = true;
             this.listView1.HideSelection = false;

